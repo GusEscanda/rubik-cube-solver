@@ -1,0 +1,22 @@
+# Para crear el environment e instalar los paquetes necesarios, una vez descargados los archivos, moverse al directorio y ejectuar:
+#         conda env create
+#         conda activate cubo
+
+# para actualizar (agregar/sacar/modificar versiones), modificar este archivo y despues ejecutar:
+#         conda env update --prune
+
+# para limpiar de paquetes instalados manualmente (pruebas), borrar el environment y volverlo a crear:
+#         conda deactivate
+#         conda env remove -n cubo
+#         conda env create
+#         conda activate cubo
+
+name: cubo
+dependencies:
+  - python=3.7
+  - numpy
+  - pip
+  - pip: # PyPI packages
+    - vtk         # representacion grafica 3d
+    - PyQt5       # interfase (botones, cuadros de texto, etc.)
+
