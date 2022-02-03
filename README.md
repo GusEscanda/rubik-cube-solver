@@ -2,9 +2,7 @@
 
 ### Solucionador de Cubo Rubik
 
-Primer proyecto para aprender a programar en Python.
-
---
+#### Primer proyecto para aprender a programar en Python.
 
 Resuelve un cubo de Rubik de NxN con métodos configurables. Muestra paso a paso la solución en grafica 3D.
 
