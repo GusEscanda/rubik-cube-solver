@@ -1,0 +1,4 @@
+# Python 3.10.12
+numpy==1.26.2   # calculo y manejo de arrays
+vtk==9.3.0      # representacion grafica 3d
+PyQt5==5.15.10  # interfase (botones, cuadros de texto, etc.)

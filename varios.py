@@ -3,29 +3,31 @@
 from PyQt5 import QtCore, QtGui
 from PyQt5 import Qt
 
+
 class Vars:
 
-    def __init__( self, niveles ):
+    def __init__(self, niveles):
         # niveles: Lista de niveles de variables (local, global, etc.). Se consultaran en el orden dado.
-        #          Puede ser una lista o un string. Los niveles pueden ser cualquier cosa que pueda ser key en un diccionario
+        #          Puede ser una lista o un string. Los niveles pueden ser cualquier cosa que pueda ser key en un
+        #          diccionario
         self.niveles = niveles[:]
         self.dicts = {}
         for n in niveles:
-            self.dicts[n] = {} # guarda un dicconario para cada nivel
-            
-    def set( self, var, valor, nivel = None ):
+            self.dicts[n] = {}  # guarda un dicconario para cada nivel
+
+    def set(self, var, valor, nivel=None):
         # var: el nombre de la variable que voy a setear
         # valor: el valor que le asigno a la variable
         # nivel: debe ser un elemento de self.niveles, si no lo es, lo agrego
         if nivel is None:
             nivel = self.niveles[0]
-        if nivel not in self.dicts: # es mas rapido chequear existencia en el diccionario
+        if nivel not in self.dicts:  # es mas rapido chequear existencia en el diccionario
             self.dicts[nivel] = {}
             self.niveles.append(nivel)
         self.dicts[nivel][var] = valor
         return valor
- 
-    def get( self, var, default = None, nivel = '' ):
+
+    def get(self, var, default=None, nivel=''):
         if nivel:
             if nivel not in self.dicts:
                 return default
@@ -37,8 +39,8 @@ class Vars:
                 if var in self.dicts[n]:
                     return self.dicts[n][var]
         return default
-    
-    def clear( self, nivel = None, var = None ):
+
+    def clear(self, nivel=None, var=None):
         if nivel is None:
             for n in self.niveles:
                 self.dicts[n] = {}
@@ -48,20 +50,22 @@ class Vars:
             else:
                 self.dicts[nivel].pop(var)
 
-    def vars(self, nivel = None):
+    def vars(self, nivel=None):
         if nivel is None:
             nivel = self.niveles[0]
         return self.dicts[nivel]
+
 
 def primerPalabra(string, separador=' '):
     string = string.strip()
     if separador in string:
         i = string.find(separador)
         pal = string[:i]
-        string = string[i+1:]
+        string = string[i + 1:]
     else:
         pal, string = string, ''
     return pal.strip(), string.strip()
+
 
 def palabras(string, separador=' '):
     string = string.strip()
@@ -70,7 +74,8 @@ def palabras(string, separador=' '):
         pp, string = primerPalabra(string, separador)
         pals.append(pp)
     return pals
- 
+
+
 def rango2X( desde, hasta, inc=(0,0) ):
     # desde: tupla (fila,columna)
     # hasta: tupla (fila,columna)
@@ -80,9 +85,10 @@ def rango2X( desde, hasta, inc=(0,0) ):
     # - el incremento por defecto para cada coordenada es 1, -1 o 0 segun se necesite
     # - si para alguna coordenada el incremento se explicita incompatible con la relacion desde-hasta
     #   se toma 1, -1 o 0
-    return rangoFC( (desde[0],hasta[0]), (desde[1],hasta[1]), inc )
+    return rangoFC((desde[0], hasta[0]), (desde[1], hasta[1]), inc)
 
-def rangoFC( rangoFilas, rangoColumnas, inc=(0,0) ):
+
+def rangoFC(rangoFilas, rangoColumnas, inc=(0, 0)):
     # rangoFilas: tupla (desde, hasta)
     # rangoColumnas: tupla (desde, hasta)
     # inc: tupla (incremento fila, incremento columna)
@@ -109,13 +115,13 @@ def rangoFC( rangoFilas, rangoColumnas, inc=(0,0) ):
         j = j if j < 0 else -j
     else:
         j = 0
-    inc = (i,j)
+    inc = (i, j)
     ret = []
     i = iDesde
-    while i >= min(iDesde,iHasta) and i <= max(iDesde,iHasta):
+    while i >= min(iDesde, iHasta) and i <= max(iDesde, iHasta):
         j = jDesde
-        while  j >= min(jDesde,jHasta) and j <= max(jDesde,jHasta):
-            ret.append( (i,j) )
+        while j >= min(jDesde, jHasta) and j <= max(jDesde, jHasta):
+            ret.append((i, j))
             if inc[1]:
                 j = j + inc[1]
             else:
@@ -126,10 +132,12 @@ def rangoFC( rangoFilas, rangoColumnas, inc=(0,0) ):
             break
     return ret
 
-def alert( texto ):
+
+def alert(texto):
     msg = Qt.QMessageBox()
-    msg.setText( texto )
+    msg.setText(texto)
     msg.exec()
+
 
 class Clase:
     def __init__(self):
