@@ -4,7 +4,7 @@ from pathlib import Path
 import json
 
 import cuboBasics as cb
-from varios import palabras, primerPalabra, rangoFC, Clase, alert, Vars
+from util import palabras, primerPalabra, rangoFC, Clase, alert, Vars
 from cuboBasics import dirArriba, dirAbajo, dirDerecha, dirIzquierda, dirNull, dirs, colores
 
 
@@ -218,7 +218,7 @@ def cantMovim(soluc):
 
 def ejecutarMetodo(cubo, met, solucion, nivel=0):
     # nivel: Para poder mostrar indentados los metodos y sub metodos que se van utilizando.
-    # cubo: Cubo que se va a resolver (se modifica durante la ejecucion del metodo)
+    # cubo: Cube que se va a resolver (se modifica durante la ejecucion del metodo)
     # solucion: Lista de los metodos utilizados en la ejecucion. Cada elemento de la lista es un objeto de tipo Sol
     # met: objeto de la clase Metodo, con los siguientes campos:
     #     id: string descriptivo del metodo (para mostrar cuando arrancan los algoritmos correspondientes a este metodo)

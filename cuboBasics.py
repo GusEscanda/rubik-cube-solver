@@ -2,7 +2,7 @@
 
 import numpy as np
 import copy
-from varios import palabras, primerPalabra, Clase, Vars
+from util import palabras, primerPalabra, Clase, Vars
 
 dirArriba = (-1, 0)  # ( incremento en la fila, incremento en la columna )
 dirAbajo = (1, 0)
@@ -13,7 +13,7 @@ dirs = {'u': dirArriba, 'd': dirAbajo, 'r': dirDerecha, 'l': dirIzquierda, '0': 
 colores = {"F": "red", "B": "orange", "U": "white", "D": "yellow", "L": "green", "R": "blue"}
 
 
-class Cubo:
+class Cube:
     class RelColores:
         def __init__(self, cubo):
             # crea un diccionario que tiene todas las relaciones entre los colores de este cubo
@@ -444,7 +444,7 @@ def __controlPiezas(cubo):
 
 
 def test():
-    cubo = Cubo(8)
+    cubo = Cube(8)
 
     for cara in 'FBUDLR':
         print(cara)

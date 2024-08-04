@@ -22,9 +22,10 @@ from vtk import vtkRenderer, vtkActor, vtkRegularPolygonSource, vtkCubeSource
 from vtk.qt.QVTKRenderWindowInteractor import QVTKRenderWindowInteractor
 
 # cube
-import cuboBasics as cb
+from cuboBasics import Cube
 import metodos as met
-from varios import Clase, palabras, primerPalabra, alert, Vars
+from util import Clase, palabras, primerPalabra, alert, Vars
+from gallery import Gallery
 
 colors = vtkNamedColors()
 # # Set the background color.
@@ -34,200 +35,11 @@ colors = vtkNamedColors()
 colores = {"F": "red", "B": "orange", "U": "white", "D": "yellow", "L": "green", "R": "blue"}
 
 
-class Galeria:
-
-    def __init__(self):
-        self.points = vtk.vtkPoints()
-        self.points.SetNumberOfPoints(25)
-        for i in range(5):
-            for j in range(5):
-                self.points.SetPoint(5 * i + j, i - 2, j - 2, 0)
-
-        self.lines = []
-        self.lines.append(Clase())
-        self.lines[-1].cellPoints = [2, 20, 24, 2]  # triangulo
-        self.lines.append(Clase())
-        self.lines[-1].cellPoints = [0, 16, 24, 8, 0]  # rombo
-        self.lines.append(Clase())
-        self.lines[-1].cellPoints = [5, 9, 19, 15, 5]  # rectangulo
-        self.lines.append(Clase())
-        self.lines[-1].cellPoints = [20, 2, 24, 12, 20]  # flecha
-        self.lines.append(Clase())
-        self.lines[-1].cellPoints = [0, 7, 4, 13, 24, 17, 20, 11, 0]  # cuadrado implosion
-        self.lines.append(Clase())
-        self.lines[-1].cellPoints = [10, 2, 14, 24, 20, 10]  # sobre
-        self.lines.append(Clase())
-        self.lines[-1].cellPoints = [0, 17, 4, 24, 20, 0]  # cuadrado con hendidura
-
-        self.cicloFormas = len(self.lines)
-        self.src = []
-        self.map = []
-
-        for f in range(self.cicloFormas):
-            self.lines[f].cellArray = vtk.vtkCellArray()
-            self.lines[f].cellArray.InsertNextCell(len(self.lines[f].cellPoints))
-            for i in range(len(self.lines[f].cellPoints)):
-                self.lines[f].cellArray.InsertCellPoint(self.lines[f].cellPoints[i])
-
-            self.src.append(vtk.vtkPolyData())
-            self.src[f].SetPoints(self.points)
-            self.src[f].SetLines(self.lines[f].cellArray)
-
-            self.map.append(vtk.vtkPolyDataMapper())
-            self.map[f].SetInputData(self.src[f])
-            self.map[f].Update()
-
-        self.colores = [(1.0, 0.0, 1.0),
-                        (0.0, 0.5, 0.5),
-                        (0.7, 0.3, 0.3),
-                        (0.5, 0.5, 0.5)
-                        ]
-        self.cicloColores = len(self.colores)
-
-        self.colorVacio = len(self.colores)
-        self.colorTachar = len(self.colores)
-        self.colorCirculo = len(self.colores)
-        self.colores.append((0.0, 0.0, 0.0))
-
-        self.escala = 1 / 8
-
-        # mapper Vacio
-        points = vtk.vtkPoints()
-        points.SetNumberOfPoints(5)
-        points.SetPoint(0, 0.0, 0.0, -0.1)
-        points.SetPoint(1, -2.5, 0.0, -0.1)
-        points.SetPoint(2, 2.5, 0.0, -0.1)
-        points.SetPoint(3, 0.0, -2.5, -0.1)
-        points.SetPoint(4, 0.0, 2.5, -0.1)
-        caVacio = vtk.vtkCellArray()
-        caVacio.InsertNextCell(1)
-        caVacio.InsertCellPoint(0)
-        srcVacio = vtk.vtkPolyData()
-        srcVacio.SetPoints(points)
-        srcVacio.SetLines(caVacio)
-        mapVacio = vtk.vtkPolyDataMapper()
-        mapVacio.SetInputData(srcVacio)
-        mapVacio.Update()
-        self.formaVacio = len(self.map)
-        self.map.append(mapVacio)
-
-        # mapper Tachar
-        caTachar = vtk.vtkCellArray()
-        caTachar.InsertNextCell(2)
-        caTachar.InsertCellPoint(1)
-        caTachar.InsertCellPoint(2)
-        caTachar.InsertNextCell(2)
-        caTachar.InsertCellPoint(3)
-        caTachar.InsertCellPoint(4)
-        srcTachar = vtk.vtkPolyData()
-        srcTachar.SetPoints(points)
-        srcTachar.SetLines(caTachar)
-        mapTachar = vtk.vtkPolyDataMapper()
-        mapTachar.SetInputData(srcTachar)
-        mapTachar.Update()
-        self.formaTachar = len(self.map)
-        self.map.append(mapTachar)
-
-        # mapper Circulo
-        srcCirc = vtk.vtkRegularPolygonSource()
-        srcCirc.SetNumberOfSides(32)
-        srcCirc.SetRadius(2.5)
-        srcCirc.GeneratePolygonOff()  # para que sea una circunferencia y no un circulo
-        mapCirc = vtk.vtkPolyDataMapper()
-        mapCirc.SetInputConnection(srcCirc.GetOutputPort())
-        self.formaCirculo = len(self.map)
-        self.map.append(mapCirc)
-
-        self.resetCasting()
-
-    def resetCasting(self):
-        self.casting = {}
-        self.casting["=="] = Clase()
-        self.casting["=="].forma = self.formaVacio
-        self.casting["=="].idxColor = self.colorVacio
-        self.casting["->"] = Clase()
-        self.casting["->"].forma = self.formaVacio
-        self.casting["->"].idxColor = self.colorVacio
-        self.casting["=>"] = Clase()
-        self.casting["=>"].forma = self.formaVacio
-        self.casting["=>"].idxColor = self.colorVacio
-        self.casting["!="] = Clase()
-        self.casting["!="].forma = self.formaTachar
-        self.casting["!="].idxColor = self.colorTachar
-        self.casting["a="] = Clase()
-        self.casting["a="].forma = self.formaCirculo
-        self.casting["a="].idxColor = self.colorCirculo
-        self.casting["c="] = Clase()
-        self.casting["c="].forma = self.formaCirculo
-        self.casting["c="].idxColor = self.colorCirculo
-        self.casting["o="] = Clase()
-        self.casting["o="].forma = self.formaCirculo
-        self.casting["o="].idxColor = self.colorCirculo
-        self.casting["a!"] = Clase()
-        self.casting["a!"].forma = self.formaCirculo
-        self.casting["a!"].idxColor = self.colorCirculo
-        self.casting["c!"] = Clase()
-        self.casting["c!"].forma = self.formaCirculo
-        self.casting["c!"].idxColor = self.colorCirculo
-        self.casting["o!"] = Clase()
-        self.casting["o!"].forma = self.formaCirculo
-        self.casting["o!"].idxColor = self.colorCirculo
-        self.nextForma = 0
-        self.nextColor = 0
-
-    def actor(self, nombre):
-        if nombre not in self.casting:
-            self.casting[nombre] = Clase()
-            self.casting[nombre].forma = self.nextForma
-            self.casting[nombre].idxColor = self.nextColor
-            self.nextForma += 1
-            self.nextColor += 1
-            # como la cantidad de formas y colores son coprimas, recien vuelven a coincidir cuando se agoten las posibilidades
-            if self.nextForma == self.cicloFormas:
-                self.nextForma = 0
-            if self.nextColor == self.cicloColores:
-                self.nextColor = 0
-        forma = self.casting[nombre].forma
-        color = self.casting[nombre].idxColor
-        act = vtk.vtkActor()
-        act.SetMapper(self.map[forma])
-        act.GetProperty().SetLineWidth(6)
-        act.GetProperty().SetColor(self.colores[color])
-        act.SetScale(self.escala, self.escala, self.escala)
-        return act
-
-    def actorT(self, texto):
-        textSource = vtk.vtkVectorText()
-        textSource.SetText(texto)
-        textSource.Update()
-        textMapper = vtk.vtkPolyDataMapper()
-        textMapper.SetInputConnection(textSource.GetOutputPort())
-        textActor = vtk.vtkActor()
-        textActor.SetMapper(textMapper)
-        textActor.GetProperty().SetColor(0, 0, 0)
-        textActor.SetPosition(-0.4, -0.2, 0.0)
-        textActor.SetScale(0.4, 0.4, 0.4)
-        ass = vtk.vtkAssembly()
-        ass.AddPart(textActor)
-        return ass
-
-    def symbolAndText(self, nombre, texto):
-        textActor = self.actorT(texto)
-        symbolActor = self.actor(nombre)
-        textActor.SetPosition(-0.4, -0.2, 0.1)
-        textActor.SetScale(0.4, 0.4, 0.4)
-        ass = vtk.vtkAssembly()
-        ass.AddPart(symbolActor)
-        ass.AddPart(textActor)
-        return ass
-
-
-class CuboVtk(cb.Cubo):
+class CubeVtk(Cube):
 
     def __init__(self, renderer, tamanio=3, white=False):
 
-        self.white = white
-        cb.Cubo.__init__(self, tamanio, white=white)
+        super().__init__(tamanio, white)
 
         self.renderer = renderer
         # atributos que definen la estetica de representacion en pantalla
@@ -371,7 +183,7 @@ class CuboVtk(cb.Cubo):
 
     def cambioTamanio(self, newTamanio):
         if self.l != newTamanio:
-            cb.Cubo.__init__(self, newTamanio, self.white)
+            super().__init__(newTamanio, self.white)
             self.renderer.RemoveAllViewProps()
             self.inicActores()
             self.resetCamara()
@@ -488,7 +300,7 @@ class MainWindow(Qt.QMainWindow):
     def __init__(self, parent=None):
         Qt.QMainWindow.__init__(self, parent)
 
-        self.setWindowTitle("Cubo NxN")
+        self.setWindowTitle("Cube NxN")
         QApplication.setStyle(Qt.QStyleFactory.create("Windows"))
 
         # self.left = 30
@@ -509,7 +321,7 @@ class MainWindow(Qt.QMainWindow):
         self.vtkWidget.GetRenderWindow().AddRenderer(self.renderer)
         self.iren = self.vtkWidget.GetRenderWindow().GetInteractor()
 
-        self.cubo = CuboVtk(self.renderer)
+        self.cubo = CubeVtk(self.renderer)
         self.metodos = met.Metodos()
         self.anim = self.Anim(parent=self, cuboAnim=self.cubo, frameRate=100)
         self.editTestVars = Vars('c')
@@ -529,7 +341,7 @@ class MainWindow(Qt.QMainWindow):
         self.renderer.ResetCamera()
         self.cubo.resetCamara()
 
-        self.galeria = Galeria()
+        self.gallery = Gallery()
         self.hints = {}
 
         self.mainLayout.addWidget(self.vtkWidget, 0, 0, 20, 1)
@@ -683,7 +495,7 @@ class MainWindow(Qt.QMainWindow):
         self.animWidgets.setLayout(layout)
 
     def crearCuboWidgets(self):
-        self.cuboWidgets = Qt.QGroupBox("Cubo")
+        self.cuboWidgets = Qt.QGroupBox("Cube")
 
         self.tamanio = Qt.QSpinBox(self)
         self.tamanio.setRange(3, 20)
@@ -1104,7 +916,7 @@ class MainWindow(Qt.QMainWindow):
             msg = msg + " " * 4 + id + "\n"
             msg = msg + "y todas sus referencias."
         self.editMetodoCDRecursivo.setChecked(False)
-        buttonReply = Qt.QMessageBox.question(self, 'Cubo', msg, Qt.QMessageBox.Yes | Qt.QMessageBox.No,
+        buttonReply = Qt.QMessageBox.question(self, 'Cube', msg, Qt.QMessageBox.Yes | Qt.QMessageBox.No,
                                               Qt.QMessageBox.No)
         if buttonReply == Qt.QMessageBox.No:
             return
@@ -1264,7 +1076,7 @@ class MainWindow(Qt.QMainWindow):
         id = self.metodoEditando.id
         buttonReply = Qt.QMessageBox.Yes
         if self.metodos.modif:
-            buttonReply = Qt.QMessageBox.question(self, 'Cubo', "Discard changes?",
+            buttonReply = Qt.QMessageBox.question(self, 'Cube', "Discard changes?",
                                                   Qt.QMessageBox.Yes | Qt.QMessageBox.No, Qt.QMessageBox.No)
         if buttonReply == Qt.QMessageBox.No:
             return
@@ -1520,7 +1332,7 @@ class MainWindow(Qt.QMainWindow):
         if texto[0:6] != 'Met : ':
             return
         self.renderer.RemoveAllViewProps()
-        self.metodoEditCubo = CuboVtk(self.renderer, self.cubo.l, white=True)
+        self.metodoEditCubo = CubeVtk(self.renderer, self.cubo.l, white=True)
         self.metodoEditCubo.setStyle(self.separacion.value() / 100,
                                      self.colorInterior,
                                      self.colorFondo,
@@ -1780,11 +1592,11 @@ class MainWindow(Qt.QMainWindow):
         for h in listaHints:
             cara, fila, columna, color = h
             (addOn, colName) = ((color[0:2], color[2:]) if color[1] in '> = !' else ('==', color))
-            act1 = self.galeria.actor(colName)
+            act1 = self.gallery.actor(colName)
             if mostrarTextoCond:
-                act2 = self.galeria.actorT(addOn)
+                act2 = self.gallery.actorT(addOn)
             else:
-                act2 = self.galeria.actor(addOn)
+                act2 = self.gallery.actor(addOn)
             cubo.c[cara][fila, columna].ass.AddPart(act1)
             cubo.c[cara][fila, columna].otros.append((0.1, act1))  # ( desplazamiento, actor )
             cubo.c[cara][fila, columna].ass.AddPart(act2)
@@ -2022,7 +1834,7 @@ class MainWindow(Qt.QMainWindow):
 
     def saveCubo(self):
         # guardo solo algunos campos pues los objetos de vtk no son "deep copiables"
-        cub = cb.Cubo(self.cubo.l)
+        cub = Cube(self.cubo.l)
         for cara in cub.c:
             for fila in range(cub.l):
                 for columna in range(cub.l):

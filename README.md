@@ -1,6 +1,6 @@
 # Rubik Cube Solver
 
-### Solucionador de Cubo Rubik
+### Solucionador de Cube Rubik
 
 >
 > Primer proyecto para aprender a programar en Python.
