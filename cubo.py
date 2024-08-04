@@ -3,23 +3,24 @@
 # https://wiki.python.org/moin/PyQt/Tutorials
 
 import copy
-# VTK
 import datetime
 import sys
 import time
 from collections import deque
 from pathlib import Path
-
 import numpy as np
+
+# VTK
 import vtk
-from PyQt5 import Qt
-from PyQt5 import QtCore
-from PyQt5.QtCore import pyqtSlot
-# Qt GUI
-from PyQt5.QtWidgets import QApplication
 from vtk import vtkPolyDataMapper, vtkNamedColors
 from vtk import vtkRenderer, vtkActor, vtkRegularPolygonSource, vtkCubeSource
 from vtk.qt.QVTKRenderWindowInteractor import QVTKRenderWindowInteractor
+
+# Qt GUI
+from PyQt5 import Qt
+from PyQt5 import QtCore
+from PyQt5.QtCore import pyqtSlot
+from PyQt5.QtWidgets import QApplication
 
 # cube
 from cuboBasics import Cube
@@ -27,26 +28,21 @@ import metodos as met
 from util import Clase, palabras, primerPalabra, alert, Vars
 from gallery import Gallery
 
-colors = vtkNamedColors()
-# # Set the background color.
-# bkg = map(lambda x: x / 255.0, [26, 51, 102, 255])
-# colors.SetColor("BkgColor", *bkg)
-
 colores = {"F": "red", "B": "orange", "U": "white", "D": "yellow", "L": "green", "R": "blue"}
 
 
 class CubeVtk(Cube):
 
-    def __init__(self, renderer, tamanio=3, white=False):
+    def __init__(self, renderer, size=3, white=False):
 
-        super().__init__(tamanio, white)
+        super().__init__(size, white)
 
         self.renderer = renderer
         # atributos que definen la estetica de representacion en pantalla
-        self.espaciado = 0
-        self.colorInterior = Qt.QColor('black')
-        self.colorFondo = Qt.QColor('white')
-        self.posCam = (1.0, 1.0, 2.0)
+        self.gap = 0
+        self.innerColor = Qt.QColor('black')
+        self.backgroundColor = Qt.QColor('white')
+        self.camPosition = (1.0, 1.0, 2.0)
         # inicialicacion de los actores que representaran al cubo
         self.inicActores()
 
@@ -134,39 +130,37 @@ class CubeVtk(Cube):
     def refreshActores(
             self):  # refresca la posicion de las celdas para que coincidan con la cara,fila,columna donde estan ubicadas
         mid = (self.l - 1) / 2
-        for cara in ('FBUDLR'):
-            for f in range(self.l):
-                for c in range(self.l):
-                    self.c[cara][f, c].actor.GetProperty().SetColor(colors.GetColor3d(self.c[cara][f, c].color))
-                    self.c[cara][f, c].actor.SetOrientation(self.angulo[cara])
-                    self.c[cara][f, c].actor.SetPosition(np.dot([f, c, 1], self.FC2xyz[cara]))
-                    self.c[cara][f, c].interior.SetPosition(
-                        np.dot([f, c, 0], 0.98 * self.FC2xyz[cara]) + self.FCCube[cara])
-                    for i in range(len(self.c[cara][f, c].otros) // 2):
-                        (desp, act) = self.c[cara][f, c].otros[2 * i]  # symbol
-                        act.SetOrientation(self.angulo[cara])
-                        pos = np.dot([f, c, 1], self.FC2xyz[cara])  # posicion de esa celda
-                        pos = pos + np.dot([mid, mid, 1], self.FC2xyz[cara]) * (i + 1) * desp  # + desplazamiento
-                        act.SetPosition(pos)
-                        (despT, act) = self.c[cara][f, c].otros[2 * i + 1]  # text
-                        act.SetOrientation(self.angulo[cara])
-                        pos = np.dot([f, c, 1], self.FC2xyz[cara])  # posicion de esa celda
-                        pos = pos + np.dot([mid, mid, 1], self.FC2xyz[cara]) * (
-                                (i + 1) * desp + despT)  # + desplazamiento
-                        act.SetPosition(pos)
-                    self.c[cara][f, c].ass.SetOrientation(0, 0, 0)
+        for cara, f, c in [(cara, f, c) for cara in 'FBUDLR' for f in range(self.l) for c in range(self.l)]:
+            self.c[cara][f, c].actor.GetProperty().SetColor(vtkNamedColors().GetColor3d(self.c[cara][f, c].color))
+            self.c[cara][f, c].actor.SetOrientation(self.angulo[cara])
+            self.c[cara][f, c].actor.SetPosition(np.dot([f, c, 1], self.FC2xyz[cara]))
+            self.c[cara][f, c].interior.SetPosition(
+                np.dot([f, c, 0], 0.98 * self.FC2xyz[cara]) + self.FCCube[cara])
+            for i in range(len(self.c[cara][f, c].otros) // 2):
+                (desp, act) = self.c[cara][f, c].otros[2 * i]  # symbol
+                act.SetOrientation(self.angulo[cara])
+                pos = np.dot([f, c, 1], self.FC2xyz[cara])  # posicion de esa celda
+                pos = pos + np.dot([mid, mid, 1], self.FC2xyz[cara]) * (i + 1) * desp  # + desplazamiento
+                act.SetPosition(pos)
+                (despT, act) = self.c[cara][f, c].otros[2 * i + 1]  # text
+                act.SetOrientation(self.angulo[cara])
+                pos = np.dot([f, c, 1], self.FC2xyz[cara])  # posicion de esa celda
+                pos = pos + np.dot([mid, mid, 1], self.FC2xyz[cara]) * (
+                        (i + 1) * desp + despT)  # + desplazamiento
+                act.SetPosition(pos)
+            self.c[cara][f, c].ass.SetOrientation(0, 0, 0)
         self.renderer.GetRenderWindow().Render()
 
-    def refreshStyleCeldas(self):  # refresca el estilo del cubo (color del interior y espaciado de las "calcomanias")
+    def refreshStyleCeldas(self):  # refresca el estilo del cubo (color del interior y gap de las "calcomanias")
         escInt = 0.98
-        escala = np.cos(np.pi / 4) * (1 - self.espaciado)
+        escala = np.cos(np.pi / 4) * (1 - self.gap)
         for cara in ('FBUDLR'):
             for f in range(self.l):
                 for c in range(self.l):
                     self.c[cara][f, c].actor.SetScale(escala, escala, escala)
                     self.c[cara][f, c].interior.SetScale(escInt, escInt, escInt)
-                    self.c[cara][f, c].interior.GetProperty().SetColor(qColor2RGB(self.colorInterior))
-                    self.c[cara][f, c].interior.GetProperty().SetOpacity(self.colorInterior.alphaF())
+                    self.c[cara][f, c].interior.GetProperty().SetColor(qColor2RGB(self.innerColor))
+                    self.c[cara][f, c].interior.GetProperty().SetOpacity(self.innerColor.alphaF())
         self.renderer.GetRenderWindow().Render()
 
     def resetCamara(self):
@@ -175,10 +169,10 @@ class CubeVtk(Cube):
         self.renderer.GetActiveCamera().ComputeViewPlaneNormal()
         self.renderer.GetActiveCamera().SetViewUp(0, 1, 0)
         self.renderer.GetActiveCamera().OrthogonalizeViewUp()
-        self.renderer.GetActiveCamera().Azimuth(self.posCam[0])
-        self.renderer.GetActiveCamera().Elevation(self.posCam[1])
+        self.renderer.GetActiveCamera().Azimuth(self.camPosition[0])
+        self.renderer.GetActiveCamera().Elevation(self.camPosition[1])
         self.renderer.ResetCamera()
-        self.renderer.GetActiveCamera().Zoom(self.posCam[2])
+        self.renderer.GetActiveCamera().Zoom(self.camPosition[2])
         self.renderer.GetRenderWindow().Render()
 
     def cambioTamanio(self, newTamanio):
@@ -188,21 +182,21 @@ class CubeVtk(Cube):
             self.inicActores()
             self.resetCamara()
 
-    def setStyle(self, espaciado, colorInterior, colorFondo, posCam):
+    def setStyle(self, gap, innerColor, backgroundColor, camPosition):
         cambiarActores = False
-        if self.espaciado != espaciado:
-            self.espaciado = espaciado
+        if self.gap != gap:
+            self.gap = gap
             cambiarActores = True
-        if self.colorInterior != colorInterior:
-            self.colorInterior = colorInterior
+        if self.innerColor != innerColor:
+            self.innerColor = innerColor
             cambiarActores = True
         if cambiarActores:
             self.refreshStyleCeldas()
-        if self.posCam != posCam:
-            self.posCam = posCam
+        if self.camPosition != camPosition:
+            self.camPosition = camPosition
             self.resetCamara()
-        self.colorFondo = colorFondo
-        self.renderer.SetBackground(qColor2RGB(self.colorFondo))
+        self.backgroundColor = backgroundColor
+        self.renderer.SetBackground(qColor2RGB(self.backgroundColor))
         self.renderer.GetRenderWindow().Render()
 
 
@@ -388,80 +382,80 @@ class MainWindow(Qt.QMainWindow):
         separacionLabel = Qt.QLabel("&Separacion:")
         separacionLabel.setBuddy(self.separacion)
 
-        self.posCamAzim = Qt.QDoubleSpinBox(self)
-        self.posCamAzim.setRange(0.0, 40.0)
-        self.posCamAzim.setSingleStep(1)
-        self.posCamAzim.setDecimals(0)
-        self.posCamAzim.setSuffix("\N{degree sign}")
-        self.posCamAzim.setValue(30)
-        self.posCamAzim.setFixedWidth(55)
-        self.posCamAzim.valueChanged.connect(self.setStyle)
-        self.posCamElev = Qt.QDoubleSpinBox(self)
-        self.posCamElev.setRange(0.0, 80.0)
-        self.posCamElev.setSingleStep(1)
-        self.posCamElev.setDecimals(0)
-        self.posCamElev.setSuffix("\N{degree sign}")
-        self.posCamElev.setFixedWidth(55)
-        self.posCamElev.setValue(30)
-        self.posCamElev.valueChanged.connect(self.setStyle)
-        self.posCamZoom = Qt.QDoubleSpinBox(self)
-        self.posCamZoom.setRange(0.2, 10.0)
-        self.posCamZoom.setSingleStep(0.1)
-        self.posCamZoom.setDecimals(1)
-        self.posCamZoom.setSuffix(" X")
-        self.posCamZoom.setFixedWidth(55)
-        self.posCamZoom.setValue(1.0)
-        self.posCamZoom.valueChanged.connect(self.setStyle)
-        posCamLabel = Qt.QLabel("Pos.Cam:")
-        posCamLabel.setFixedWidth(60)
-        posCamAzimLabel = Qt.QLabel("&Azim")
-        posCamAzimLabel.setBuddy(self.posCamAzim)
-        posCamAzimLabel.setFixedWidth(25)
-        posCamElevLabel = Qt.QLabel("&Elev")
-        posCamElevLabel.setBuddy(self.posCamElev)
-        posCamElevLabel.setFixedWidth(25)
-        posCamZoomLabel = Qt.QLabel("&Zoom")
-        posCamZoomLabel.setBuddy(self.posCamZoom)
-        posCamZoomLabel.setFixedWidth(25)
+        self.camPositionAzim = Qt.QDoubleSpinBox(self)
+        self.camPositionAzim.setRange(0.0, 40.0)
+        self.camPositionAzim.setSingleStep(1)
+        self.camPositionAzim.setDecimals(0)
+        self.camPositionAzim.setSuffix("\N{degree sign}")
+        self.camPositionAzim.setValue(30)
+        self.camPositionAzim.setFixedWidth(55)
+        self.camPositionAzim.valueChanged.connect(self.setStyle)
+        self.camPositionElev = Qt.QDoubleSpinBox(self)
+        self.camPositionElev.setRange(0.0, 80.0)
+        self.camPositionElev.setSingleStep(1)
+        self.camPositionElev.setDecimals(0)
+        self.camPositionElev.setSuffix("\N{degree sign}")
+        self.camPositionElev.setFixedWidth(55)
+        self.camPositionElev.setValue(30)
+        self.camPositionElev.valueChanged.connect(self.setStyle)
+        self.camPositionZoom = Qt.QDoubleSpinBox(self)
+        self.camPositionZoom.setRange(0.2, 10.0)
+        self.camPositionZoom.setSingleStep(0.1)
+        self.camPositionZoom.setDecimals(1)
+        self.camPositionZoom.setSuffix(" X")
+        self.camPositionZoom.setFixedWidth(55)
+        self.camPositionZoom.setValue(1.0)
+        self.camPositionZoom.valueChanged.connect(self.setStyle)
+        camPositionLabel = Qt.QLabel("Pos.Cam:")
+        camPositionLabel.setFixedWidth(60)
+        camPositionAzimLabel = Qt.QLabel("&Azim")
+        camPositionAzimLabel.setBuddy(self.camPositionAzim)
+        camPositionAzimLabel.setFixedWidth(25)
+        camPositionElevLabel = Qt.QLabel("&Elev")
+        camPositionElevLabel.setBuddy(self.camPositionElev)
+        camPositionElevLabel.setFixedWidth(25)
+        camPositionZoomLabel = Qt.QLabel("&Zoom")
+        camPositionZoomLabel.setBuddy(self.camPositionZoom)
+        camPositionZoomLabel.setFixedWidth(25)
 
         self.botonResetCamara = Qt.QPushButton('Reset &Camara', self)
         self.botonResetCamara.clicked.connect(self.clickResetCamara)
 
-        self.colorInterior = Qt.QColor('black')
-        self.colorInterior.setAlpha(20)
+        self.innerColor = Qt.QColor('black')
+        self.innerColor.setAlpha(20)
         self.botonColorInt = Qt.QPushButton()
-        self.botonColorInt.setStyleSheet("background-color: " + self.colorInterior.name())
+        self.botonColorInt.setStyleSheet("background-color: " + self.innerColor.name())
         self.botonColorInt.setFixedWidth(20)
         self.botonColorInt.clicked.connect(self.elegirColorInterior)
-        colorInteriorLabel = Qt.QLabel("Color Interior:")
-        colorInteriorLabel.setBuddy(self.botonColorInt)
+        innerColorLabel = Qt.QLabel("Color Interior:")
+        innerColorLabel.setBuddy(self.botonColorInt)
 
-        self.colorFondo = Qt.QColor('white')
+        self.backgroundColor = Qt.QColor('white')
         self.botonColorFon = Qt.QPushButton()
-        self.botonColorFon.setStyleSheet("background-color: " + self.colorFondo.name())
+        self.botonColorFon.setStyleSheet("background-color: " + self.backgroundColor.name())
         self.botonColorFon.setFixedWidth(20)
         self.botonColorFon.clicked.connect(self.elegirColorFondo)
-        colorFondoLabel = Qt.QLabel("Color Fondo:")
-        colorFondoLabel.setBuddy(self.botonColorFon)
+        backgroundColorLabel = Qt.QLabel("Color Fondo:")
+        backgroundColorLabel.setBuddy(self.botonColorFon)
 
         layout = Qt.QVBoxLayout()
         lay = Qt.QHBoxLayout()
-        lay.addWidget(posCamLabel)
-        lay.addWidget(posCamAzimLabel)
-        lay.addWidget(self.posCamAzim)
+        lay.addWidget(camPositionLabel)
+        lay.addWidget(camPositionAzimLabel)
+        lay.addWidget(self.camPositionAzim)
         lay.stretch(1)
-        lay.addWidget(posCamElevLabel)
-        lay.addWidget(self.posCamElev)
+        lay.addWidget(camPositionElevLabel)
+        lay.addWidget(self.camPositionElev)
         lay.stretch(1)
-        lay.addWidget(posCamZoomLabel)
-        lay.addWidget(self.posCamZoom)
+        lay.addWidget(camPositionZoomLabel)
+        lay.addWidget(self.camPositionZoom)
         lay.stretch(1)
         lay.addWidget(self.botonResetCamara)
         layout.addLayout(lay)
         lay = Qt.QHBoxLayout()
-        lay.addWidget(colorFondoLabel)
+        lay.addWidget(backgroundColorLabel)
         lay.addWidget(self.botonColorFon)
-        lay.addWidget(colorInteriorLabel)
+        lay.addWidget(innerColorLabel)
         lay.addWidget(self.botonColorInt)
         lay.addWidget(separacionLabel)
         lay.addWidget(self.separacion)
@@ -1334,11 +1328,11 @@ class MainWindow(Qt.QMainWindow):
         self.renderer.RemoveAllViewProps()
         self.metodoEditCubo = CubeVtk(self.renderer, self.cubo.l, white=True)
         self.metodoEditCubo.setStyle(self.separacion.value() / 100,
-                                     self.colorInterior,
-                                     self.colorFondo,
-                                     (self.posCamAzim.value(),
-                                      self.posCamElev.value(),
-                                      self.posCamZoom.value()
+                                     self.innerColor,
+                                     self.backgroundColor,
+                                     (self.camPositionAzim.value(),
+                                      self.camPositionElev.value(),
+                                      self.camPositionZoom.value()
                                       )
                                      )
         self.listaEditados = []
@@ -1723,17 +1717,17 @@ class MainWindow(Qt.QMainWindow):
         self.anim.mostrarMovim = self.showMovimCheckBox.isChecked()
 
     def elegirColorInterior(self):
-        color = Qt.QColorDialog.getColor(initial=self.colorInterior, options=Qt.QColorDialog.ShowAlphaChannel)
+        color = Qt.QColorDialog.getColor(initial=self.innerColor, options=Qt.QColorDialog.ShowAlphaChannel)
         if color.isValid():
-            self.colorInterior = color
-            self.botonColorInt.setStyleSheet("background-color: " + self.colorInterior.name())
+            self.innerColor = color
+            self.botonColorInt.setStyleSheet("background-color: " + self.innerColor.name())
             self.setStyle()
 
     def elegirColorFondo(self):
-        color = Qt.QColorDialog.getColor(initial=self.colorFondo, options=Qt.QColorDialog.ShowAlphaChannel)
+        color = Qt.QColorDialog.getColor(initial=self.backgroundColor, options=Qt.QColorDialog.ShowAlphaChannel)
         if color.isValid():
-            self.colorFondo = color
-            self.botonColorFon.setStyleSheet("background-color: " + self.colorFondo.name())
+            self.backgroundColor = color
+            self.botonColorFon.setStyleSheet("background-color: " + self.backgroundColor.name())
             self.setStyle()
 
     @pyqtSlot()
@@ -1891,11 +1885,11 @@ class MainWindow(Qt.QMainWindow):
     @pyqtSlot()
     def setStyle(self):
         self.cubo.setStyle(self.separacion.value() / 100,
-                           self.colorInterior,
-                           self.colorFondo,
-                           (self.posCamAzim.value(),
-                            self.posCamElev.value(),
-                            self.posCamZoom.value()
+                           self.innerColor,
+                           self.backgroundColor,
+                           (self.camPositionAzim.value(),
+                            self.camPositionElev.value(),
+                            self.camPositionZoom.value()
                             )
                            )
         self.setAnimInc()
