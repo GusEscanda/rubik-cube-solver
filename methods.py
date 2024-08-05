@@ -4,7 +4,7 @@ from pathlib import Path
 import json
 
 import cube as cb
-from util import palabras, primerPalabra, rangoFC, Clase, alert, Vars
+from util import stripWords, firstAndRest, rangoFC, Vars
 from cube import UP, DOWN, RIGHT, LEFT, NULL, DIRS, COLORS
 
 
@@ -12,7 +12,7 @@ def celdaEquiv(cubo, cara, fila, columna, posicionCubo):
     # Devuelve la cara, fila, columna donde estaría esta celda si hiciera los movimientos inversos a los de posicionCubo
     if posicionCubo == '-':
         posicionCubo = ''
-    for movim in reversed(palabras(posicionCubo)):
+    for movim in reversed(stripWords(posicionCubo)):
         multip = (1 if '2' not in movim else 2)
         prima = ("'" in movim)
         movim = movim[0]
@@ -111,7 +111,7 @@ def matchCelda(vars, coloresPosibles, colorRel, colorCelda):
     # colorRel: indica la relacion de COLORS que hay en este cubo (clockwise, anticlockwise, opuestos)
     # colorCelda: el color de la celda que quiero ver si matchea
     mCelda = False  # match si alguno de los COLORS posibles matchea
-    for color in palabras(coloresPosibles):
+    for color in stripWords(coloresPosibles):
         debeCoincidir = True
         if color[0:2] == '->':  # asigna a la variable el color de la celda actual
             color = vars.set(color[2:], colorCelda, 'l')
@@ -124,7 +124,7 @@ def matchCelda(vars, coloresPosibles, colorRel, colorCelda):
             debeCoincidir = False
         elif color[0:2] in 'a= c= o= a! c! o!':
             debeCoincidir = (color[1] == '=')
-            c1, c2 = primerPalabra(color[2:], ',')
+            c1, c2 = firstAndRest(color[2:], ',')
             c1 = vars.get(c1, default='')
             c2 = vars.get(c2, default='')
             color = colorRel.listCols(color[0], c1, c2)
@@ -212,7 +212,7 @@ def cantMovim(soluc):
     c = 0
     for s in soluc:
         if s.tipo in 'Alg/Pos':
-            c = c + len(palabras(s.texto))
+            c = c + len(stripWords(s.texto))
     return c
 
 
@@ -238,7 +238,7 @@ def ejecutarMetodo(cubo, met, solucion, level=0):
     cantVeces = 1 if met.modo.upper() in 'ONCE / BEST MATCH' else cantVeces
     cantVeces = 2 if met.modo.upper() == 'TWICE' else cantVeces
     if 'TIMES' in met.modo.upper():
-        cantVeces = int(palabras(met.modo)[0])
+        cantVeces = int(stripWords(met.modo)[0])
     bestMatch = (met.modo.upper() == 'BEST MATCH')
     if met.rangoI:
         ddeI, htaI = cubo.str2rango(met.rangoI, checkRangoCero=False)
@@ -364,11 +364,11 @@ def cond2ListaCeldas(cubo, vars, listaCond):  # devuelve listaCeldas
     listaCeldas = []
     for cond in listaCond:
         if cond[0:2].upper() == 'OR':
-            listaCeldas.append(cond2ListaCeldas(cubo, vars, palabras(cond[2:], ',')))
+            listaCeldas.append(cond2ListaCeldas(cubo, vars, stripWords(cond[2:], ',')))
         else:
             if not cond:
                 continue
-            cara, rangoFilas, rangoColumnas, colores = palabras(cond, '.')
+            cara, rangoFilas, rangoColumnas, colores = stripWords(cond, '.')
 
             rangoFilas = rangoFilas.replace('i', str(vars.get('i', 'i')))
             rangoFilas = rangoFilas.replace('j', str(vars.get('j', 'j')))

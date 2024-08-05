@@ -56,27 +56,21 @@ class Vars:
         return self.dicts[level]
 
 
-def primerPalabra(string, separador=' '):
-    string = string.strip()
-    if separador in string:
-        i = string.find(separador)
-        pal = string[:i]
-        string = string[i + 1:]
-    else:
-        pal, string = string, ''
-    return pal.strip(), string.strip()
+def firstAndRest(string, sep=' '):
+    words = stripWords(string, sep)
+    first, rest = '', ''
+    if len(words) > 0:
+        first = words[0]
+        if len(words) > 1:
+            rest = sep.join(words[1:])
+    return first, rest
 
 
-def palabras(string, separador=' '):
-    string = string.strip()
-    pals = []
-    while string:
-        pp, string = primerPalabra(string, separador)
-        pals.append(pp)
-    return pals
+def stripWords(string, sep=' '):
+    return [w.strip() for w in string.split(sep) if w.strip()]
 
 
-def rango2X( desde, hasta, inc=(0,0) ):
+def rango2X(desde, hasta, inc=(0, 0)):
     # desde: tupla (fila,columna)
     # hasta: tupla (fila,columna)
     # inc: tupla (incremento fila, incremento columna)
@@ -118,9 +112,9 @@ def rangoFC(rangoFilas, rangoColumnas, inc=(0, 0)):
     inc = (i, j)
     ret = []
     i = iDesde
-    while i >= min(iDesde, iHasta) and i <= max(iDesde, iHasta):
+    while min(iDesde, iHasta) <= i <= max(iDesde, iHasta):
         j = jDesde
-        while j >= min(jDesde, jHasta) and j <= max(jDesde, jHasta):
+        while min(jDesde, jHasta) <= j <= max(jDesde, jHasta):
             ret.append((i, j))
             if inc[1]:
                 j = j + inc[1]
@@ -131,12 +125,6 @@ def rangoFC(rangoFilas, rangoColumnas, inc=(0, 0)):
         else:
             break
     return ret
-
-
-def alert(texto):
-    msg = Qt.QMessageBox()
-    msg.setText(texto)
-    msg.exec()
 
 
 class Clase:

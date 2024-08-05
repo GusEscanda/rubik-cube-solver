@@ -1,7 +1,7 @@
 # Empiezo a jugar con las estructuras de datos y procesos basicos de un cubo Rubik...
 
 import numpy as np
-from util import palabras, primerPalabra, Clase, Vars
+from util import stripWords, firstAndRest, Clase, Vars
 
 UP = (-1, 0)  # ( incremento en la fila, incremento en la columna )
 DOWN = (1, 0)
@@ -172,13 +172,13 @@ class Cube:
         return c
 
     def str2rango(self, sRango, checkRangoCero=True):
-        desde, hasta = primerPalabra(sRango, ':')
+        desde, hasta = firstAndRest(sRango, ':')
         hasta = hasta if hasta else desde
         desde = self.str2coord(desde, checkRangoCero)
         hasta = self.str2coord(hasta, checkRangoCero)
         if desde > hasta:
             desde, hasta = hasta, desde
-        return (desde, hasta)
+        return desde, hasta
 
     def str2movim(self, mov):
         # convierte mov a una tupla (idCara, rango, direc, multip) para llamar multip veces al metodo unMovimiento
@@ -209,6 +209,7 @@ class Cube:
         # cualquier movimiento que comience con '><' se considera espejado respecto a un plano definido por los
         # ejes Z e Y
         mm = mov
+        idCara, direc, rango, multip = '', NULL, (0, 0), 0
 
         espejo = False
         if mm[0:2] == '><':
@@ -216,11 +217,11 @@ class Cube:
             mm = mm[2:]
 
         if '.' in mm:  # mov : <idCara>[.<rango desde>[:<rango hasta>]].<direccion>
-            idCara, mm = primerPalabra(mm, '.')
+            idCara, mm = firstAndRest(mm, '.')
             idCara = idCara.upper()
             rango = (1, 1)  # solo para que tenga algun valor en caso de no especificarse
             if '.' in mm:  # hay un rango especificado
-                rr, mm = primerPalabra(mm, '.')
+                rr, mm = firstAndRest(mm, '.')
                 rango = self.str2rango(rr)
             multip = 1
             if mm[0] in '123456789':  # hay un multiplicador especificado
@@ -247,13 +248,16 @@ class Cube:
             if idCara in 'FBLRUD':
                 rango = (0, 0)
             elif idCara in 'fblrud':
-                rango = (0,
-                         self.l - 2)  # en cubos > 3x3, lo coherente es considerar el bloque central completo (mueve todo menos la cara opuesta)
+                # en cubos > 3x3, lo coherente es considerar el bloque central completo (mueve todo menos la cara opuesta)
+                rango = (0, self.l - 2)
             elif idCara in 'MESmes':  # m e s (minuscula) no tiene sentido pero por simplicidad lo hago equivalente a M E S
-                rango = (1, self.l - 2)  # bloque central sin las caras laterales
+                # bloque central sin las caras laterales
+                rango = (1, self.l - 2)
             elif idCara in 'XYZxyz':  # X Y Z lo hago equivalente a x y z (esto si se suele usar en upper y lower indistintamente)
-                rango = (0, self.l - 1)  # rango completo, cambia la orientacion del cubo
+                # rango completo, cambia la orientacion del cubo
+                rango = (0, self.l - 1)
 
+            cara, direc = '', ''
             if idCara in "FfSsZz":
                 cara, direc = 'R', DOWN
             elif idCara in "Bb":
@@ -295,7 +299,7 @@ class Cube:
         else:
             celdasMovidas = False
             caraAnticlockwise = ''
-        movs = palabras(movimientos, ' ')
+        movs = stripWords(movimientos)
         if haciaAtras:
             movs.reverse()
         espejo = ''

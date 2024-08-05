@@ -25,7 +25,7 @@ from PyQt5.QtWidgets import QApplication
 # cube
 from cube import Cube
 import methods as met
-from util import Clase, palabras, primerPalabra, alert, Vars
+from util import stripWords, firstAndRest, Vars
 from gallery import Gallery
 
 colores = {"F": "red", "B": "orange", "U": "white", "D": "yellow", "L": "green", "R": "blue"}
@@ -237,7 +237,7 @@ class MainWindow(Qt.QMainWindow):
             # procesar el jobs[0]
             if self.jobs[0].avance == 0:  # inicializo el job
                 if 'Actualiza' in self.jobs[0].movim:
-                    self.parent.actualizaCurrentRowSoluc(int(palabras(self.jobs[0].movim, '-')[1]))
+                    self.parent.actualizaCurrentRowSoluc(int(self.jobs[0].movim.split('-')[1]))
                     self.endJob()
                     return
                 celdasMovidas, caraAnticlockwise = self.cuboAnim.mover(self.jobs[0].movim, self.mostrarMovim)
@@ -266,7 +266,7 @@ class MainWindow(Qt.QMainWindow):
 
         def addJobs(self, movimientos):
             espejo = ''
-            for mov in palabras(movimientos, ' '):
+            for mov in stripWords(movimientos):
                 if mov == '><':
                     espejo = '><' if espejo == '' else ''
                     continue
@@ -885,7 +885,7 @@ class MainWindow(Qt.QMainWindow):
         if not ok or not text:
             return
         if not recursivo and self.metodos.exist(text):
-            alert('Metodo existente')
+            self.alert('Metodo existente')
             return
         id = self.metodoEditando.id
         self.metodos.copy(id, text, recursivo)
@@ -1170,7 +1170,7 @@ class MainWindow(Qt.QMainWindow):
 
         if 'times' in self.metodoEditando.modo:
             self.editModo.setCurrentText('times')
-            self.editTimes.setValue(int(primerPalabra(self.metodoEditando.modo)[0]))
+            self.editTimes.setValue(int(firstAndRest(self.metodoEditando.modo)[0]))
         else:
             self.editModo.setCurrentText(self.metodoEditando.modo)
             self.changeEditModo('modo')
@@ -1267,7 +1267,7 @@ class MainWindow(Qt.QMainWindow):
             return
         if self.metodos.exist(new):  # Cambio un subMetodo por otro (o agrego, si estaba en la ultima fila)
             if self.metodos.metodo(new).incluyeA(id):  # si hay referencia circular, repongo el texto original
-                alert('Referencia circular, un metodo no puede ser submetodo de si mismo')
+                self.alert('Referencia circular, un metodo no puede ser submetodo de si mismo')
                 if row < len(self.metodoEditando.subMetodos):
                     self.editSubMetodos.cellWidget(row, 0).setCurrentText(old)
                 else:
@@ -1556,10 +1556,10 @@ class MainWindow(Qt.QMainWindow):
                     lc = met.mirrorCelda(cubo, lc)
                 (cara, fila, columna, coloresPosibles) = lc
                 (cara, fila, columna) = met.celdaEquiv(cubo, cara, fila, columna, posic)
-                for color in palabras(coloresPosibles):
+                for color in stripWords(coloresPosibles):
                     if ',' in color:  # es una funcion de 2 parametros (a=, c=, a! o c!)
                         c0 = color[0:2]
-                        c1, c2 = primerPalabra(color[2:], ',')
+                        c1, c2 = firstAndRest(color[2:], ',')
                         ret.append((cara, fila, columna, c0 + c1))
                         ret.append((cara, fila, columna, c0 + c2))
                     else:
@@ -1570,10 +1570,10 @@ class MainWindow(Qt.QMainWindow):
                         lcOr = met.mirrorCelda(cubo, lcOr)
                     (cara, fila, columna, coloresPosibles) = lcOr
                     (cara, fila, columna) = met.celdaEquiv(cubo, cara, fila, columna, posic)
-                    for color in palabras(coloresPosibles):
+                    for color in stripWords(coloresPosibles):
                         if ',' in color:  # es una funcion de 2 parametros (a=, c=, a! o c!)
                             c0 = color[0:2]
-                            c1, c2 = primerPalabra(color[2:], ',')
+                            c1, c2 = firstAndRest(color[2:], ',')
                             ret.append((cara, fila, columna, c0 + c1))
                             ret.append((cara, fila, columna, c0 + c2))
                         else:
@@ -1739,7 +1739,7 @@ class MainWindow(Qt.QMainWindow):
             t = time.time()
             met.ejecutarMetodo(self.cubo, self.metodos.metodo(texto[6:]), self.soluc)
             t = str(datetime.timedelta(seconds=round(time.time() - t, 2)))[:-4]
-            alert('{0} movimientos, tiempo de ejecucion: {1}'.format(met.cantMovim(self.soluc), t))
+            self.alert('{0} movimientos, tiempo de ejecucion: {1}'.format(met.cantMovim(self.soluc), t))
             self.loadCuboFrom(cuboAuxiliar)
             self.cargaSolucion()
             self.arbolMetodosWidgets.hide()
@@ -1786,7 +1786,7 @@ class MainWindow(Qt.QMainWindow):
                 self.cubo.refreshActores()
                 if success:
                     t = str(datetime.timedelta(seconds=round((time.time() - t) / tot, 2)))[:-4]
-                    alert('Promedio: {0} movimientos, tiempo de ejecucion promedio: {1}'.format(cantMovim // tot, t))
+                    self.alert('Promedio: {0} movimientos, tiempo de ejecucion promedio: {1}'.format(cantMovim // tot, t))
 
                 self.vtkWidget.setDisabled(False)
                 self.cuboWidgets.setDisabled(False)
@@ -1899,6 +1899,11 @@ class MainWindow(Qt.QMainWindow):
     @pyqtSlot()
     def clickResetCamara(self):
         self.cubo.resetCamara()
+
+    def alert(self, texto):
+        msg = Qt.QMessageBox()
+        msg.setText(texto)
+        msg.exec()
 
 
 if __name__ == "__main__":
