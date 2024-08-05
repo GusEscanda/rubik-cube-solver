@@ -150,7 +150,7 @@ class Gallery:
             self.casting[nombre].idxColor = self.nextColor
             self.nextForma += 1
             self.nextColor += 1
-            # como la cantidad de formas y colores son coprimas, recien vuelven a coincidir cuando se agoten las posibilidades
+            # como la cantidad de formas y COLORS son coprimas, recien vuelven a coincidir cuando se agoten las posibilidades
             if self.nextForma == self.cicloFormas:
                 self.nextForma = 0
             if self.nextColor == self.cicloColores:

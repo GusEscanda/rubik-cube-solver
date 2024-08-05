@@ -1820,11 +1820,11 @@ class MainWindow(Qt.QMainWindow):
         self.movimientos.setText("")
 
     class Preset:
-        def __init__(self, c=None, l=None, conn=None, relColores=None):
+        def __init__(self, c=None, l=None, conn=None, colorRel=None):
             self.c = c
             self.l = l
             self.conn = conn
-            self.relColores = relColores
+            self.colorRel = colorRel
 
     def saveCubo(self):
         # guardo solo algunos campos pues los objetos de vtk no son "deep copiables"
@@ -1834,11 +1834,7 @@ class MainWindow(Qt.QMainWindow):
                 for columna in range(cub.l):
                     cub.c[cara][fila, columna].id = self.cubo.c[cara][fila, columna].id
                     cub.c[cara][fila, columna].color = self.cubo.c[cara][fila, columna].color
-        preset = self.Preset(cub.c,
-                             self.cubo.l,
-                             copy.deepcopy(self.cubo.conn),
-                             copy.deepcopy(self.cubo.relColores)
-                             )
+        preset = self.Preset(cub.c, self.cubo.l, copy.deepcopy(self.cubo.conn), copy.deepcopy(self.cubo.colorRel))
         return preset
 
     def loadCuboFrom(self, preset):
@@ -1851,7 +1847,7 @@ class MainWindow(Qt.QMainWindow):
                     self.cubo.c[cara][fila, columna].color = preset.c[cara][fila, columna].color
         self.cubo.l = preset.l
         self.cubo.conn = copy.deepcopy(preset.conn)
-        self.cubo.relColores = copy.deepcopy(preset.relColores)
+        self.cubo.colorRel = copy.deepcopy(preset.colorRel)
         self.renderer.RemoveAllViewProps()
         self.cubo.inicActores()
 
