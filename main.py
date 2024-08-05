@@ -23,8 +23,8 @@ from PyQt5.QtCore import pyqtSlot
 from PyQt5.QtWidgets import QApplication
 
 # cube
-from cuboBasics import Cube
-import metodos as met
+from cube import Cube
+import methods as met
 from util import Clase, palabras, primerPalabra, alert, Vars
 from gallery import Gallery
 
@@ -613,7 +613,7 @@ class MainWindow(Qt.QMainWindow):
         self.editArchivoMetodos = Qt.QComboBox()
         self.editArchivoMetodos.addItems(self.archivosPuntoMet())
         self.editArchivoMetodos.setEditable(True)
-        self.editArchivoMetodos.setCurrentText('metodos.json')
+        self.editArchivoMetodos.setCurrentText('methods.json')
         self.editArchivoMetodos.lineEdit().editingFinished.connect(self.cambioNombreArch)
         self.editArchivoModificado = Qt.QLabel(' ')
         self.botonLoadArchivoMetodos = Qt.QPushButton('Load')
@@ -1054,8 +1054,8 @@ class MainWindow(Qt.QMainWindow):
     def archivosPuntoMet(self):
         p = Path('.')
         ret = [file.name for file in p.glob('*.json')]
-        if 'metodos.json' not in ret:
-            ret.append('metodos.json')
+        if 'methods.json' not in ret:
+            ret.append('methods.json')
         return ret
 
     def cambioNombreArch(self):
@@ -1483,7 +1483,7 @@ class MainWindow(Qt.QMainWindow):
             s = self.soluc[row]
             if s.tipo in 'Alg/Pos':
                 if anteriorEjecutable:
-                    self.soluc.insert(row, met.Sol(s.nivel, '...', '', s.hizo, s.metodo, False, self.cubo.vars))
+                    self.soluc.insert(row, met.Sol(s.level, '...', '', s.hizo, s.metodo, False, self.cubo.vars))
                     row += 1
                 anteriorEjecutable = True
             else:
@@ -1496,7 +1496,7 @@ class MainWindow(Qt.QMainWindow):
             s = self.soluc[row]
             self.listaSolucWidget.setItem(row, 0, Qt.QTableWidgetItem(' '))
             self.listaSolucWidget.setItem(row, 1, Qt.QTableWidgetItem(
-                '        ' * s.nivel +
+                '        ' * s.level +
                 ('  ' if s.hizo else '( ') +
                 s.tipo + ' : ' + s.texto +
                 ('  ' if s.hizo else ' )')
@@ -1657,12 +1657,12 @@ class MainWindow(Qt.QMainWindow):
         while 'Met' not in s.tipo:
             row -= 1
             s = self.soluc[row]
-        return s.nivel
+        return s.level
 
     @pyqtSlot()
     def solucPlay(self, tipoDetencion):
         # tipoDetencion : 1 = ejecuta solo el renglon donde estoy parado y se detiene en el siguiente
-        #                 2 = se detiene en el siguiente metodo que tenga el mismo nivel que el actual
+        #                 2 = se detiene en el siguiente metodo que tenga el mismo level que el actual
         #                 3 = ejecutar hasta el final
         if self.solucRow >= len(self.soluc):
             return
@@ -1673,7 +1673,7 @@ class MainWindow(Qt.QMainWindow):
         detenerEnImportants = False
         nivelDetencion = {1: 9999999, 2: self.getNivelMetodo(row), 3: 0}[tipoDetencion]
         if self.solucShowHints.isChecked():
-            nivelDetencion = 0  # Si 'ShowHints', voy de algoritmo en algoritmo, saco la restriccion del nivel de detencion
+            nivelDetencion = 0  # Si 'ShowHints', voy de algoritmo en algoritmo, saco la restriccion del level de detencion
             detenerEnImportants = (tipoDetencion == 2)  # si ademas presionaron '>>', detener en 'importants'
         comienzoEnAlg = (s.tipo in 'Alg/Pos')
         if not comienzoEnAlg or not self.solucShowHints.isChecked():
@@ -1686,7 +1686,7 @@ class MainWindow(Qt.QMainWindow):
             return
         while row < len(self.soluc):
             s = self.soluc[row]
-            if s.nivel <= nivelDetencion:
+            if s.level <= nivelDetencion:
                 break
             if s.tipo in 'Alg/Pos' and self.solucShowHints.isChecked():
                 if detenerEnImportants:

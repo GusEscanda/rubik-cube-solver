@@ -6,54 +6,54 @@ from PyQt5 import Qt
 
 class Vars:
 
-    def __init__(self, niveles):
-        # niveles: Lista de niveles de variables (local, global, etc.). Se consultaran en el orden dado.
-        #          Puede ser una lista o un string. Los niveles pueden ser cualquier cosa que pueda ser key en un
+    def __init__(self, levels):
+        # levels: Lista de levels de variables (local, global, etc.). Se consultaran en el orden dado.
+        #          Puede ser una lista o un string. Los levels pueden ser cualquier cosa que pueda ser key en un
         #          diccionario
-        self.niveles = niveles[:]
+        self.levels = levels[:]
         self.dicts = {}
-        for n in niveles:
-            self.dicts[n] = {}  # guarda un dicconario para cada nivel
+        for n in levels:
+            self.dicts[n] = {}  # guarda un dicconario para cada level
 
-    def set(self, var, valor, nivel=None):
+    def set(self, var, valor, level=None):
         # var: el nombre de la variable que voy a setear
         # valor: el valor que le asigno a la variable
-        # nivel: debe ser un elemento de self.niveles, si no lo es, lo agrego
-        if nivel is None:
-            nivel = self.niveles[0]
-        if nivel not in self.dicts:  # es mas rapido chequear existencia en el diccionario
-            self.dicts[nivel] = {}
-            self.niveles.append(nivel)
-        self.dicts[nivel][var] = valor
+        # level: debe ser un elemento de self.levels, si no lo es, lo agrego
+        if level is None:
+            level = self.levels[0]
+        if level not in self.dicts:  # es mas rapido chequear existencia en el diccionario
+            self.dicts[level] = {}
+            self.levels.append(level)
+        self.dicts[level][var] = valor
         return valor
 
-    def get(self, var, default=None, nivel=''):
-        if nivel:
-            if nivel not in self.dicts:
+    def get(self, var, default=None, level=''):
+        if level:
+            if level not in self.dicts:
                 return default
-            if var not in self.dicts[nivel]:
+            if var not in self.dicts[level]:
                 return default
-            return self.dicts[nivel][var]
+            return self.dicts[level][var]
         else:
-            for n in self.niveles:
+            for n in self.levels:
                 if var in self.dicts[n]:
                     return self.dicts[n][var]
         return default
 
-    def clear(self, nivel=None, var=None):
-        if nivel is None:
-            for n in self.niveles:
+    def clear(self, level=None, var=None):
+        if level is None:
+            for n in self.levels:
                 self.dicts[n] = {}
         else:
             if var is None:
-                self.dicts[nivel] = {}
+                self.dicts[level] = {}
             else:
-                self.dicts[nivel].pop(var)
+                self.dicts[level].pop(var)
 
-    def vars(self, nivel=None):
-        if nivel is None:
-            nivel = self.niveles[0]
-        return self.dicts[nivel]
+    def vars(self, level=None):
+        if level is None:
+            level = self.levels[0]
+        return self.dicts[level]
 
 
 def primerPalabra(string, separador=' '):

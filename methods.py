@@ -3,9 +3,9 @@ import copy
 from pathlib import Path
 import json
 
-import cuboBasics as cb
+import cube as cb
 from util import palabras, primerPalabra, rangoFC, Clase, alert, Vars
-from cuboBasics import UP, DOWN, RIGHT, LEFT, NULL, DIRS, COLORS
+from cube import UP, DOWN, RIGHT, LEFT, NULL, DIRS, COLORS
 
 
 def celdaEquiv(cubo, cara, fila, columna, posicionCubo):
@@ -186,9 +186,9 @@ def matchCubo(cubo, vars, listaCeldas, posiciones=['-']):
     return matchAlguna, maxPosicion
 
 
-class Sol():
+class Sol:
     # Registro conteniendo la info necesaria para mostrar/ejecutar la resolucion del cubo
-    #   - nivel: Profundidad del arbol de metodos recorrida hasta aqui (para poder mostrar indentados los metodos)
+    #   - level: Profundidad del arbol de metodos recorrida hasta aqui (para poder mostrar indentados los metodos)
     #   - tipo: Tipo de renglon en la ejecucion, valores posibles:
     #           'Met' titulo de un metodo
     #           'Pos' movimientos para posicionar antes de ejecutar el algoritmo
@@ -198,8 +198,8 @@ class Sol():
     #   - metodo: Metodo aplicado (objeto)
     #   - mirror: Si se aplico el metodo espejado o no
     #   - vars: Copia de los valores que tenían las variables en este momento de la ejecución (sobre todo me interesan i,j,k)
-    def __init__(self, nivel, tipo, texto, hizo, metodo, mirror, vars):
-        self.nivel = nivel
+    def __init__(self, level, tipo, texto, hizo, metodo, mirror, vars):
+        self.level = level
         self.tipo = tipo
         self.texto = texto
         self.hizo = hizo
@@ -216,8 +216,8 @@ def cantMovim(soluc):
     return c
 
 
-def ejecutarMetodo(cubo, met, solucion, nivel=0):
-    # nivel: Para poder mostrar indentados los metodos y sub metodos que se van utilizando.
+def ejecutarMetodo(cubo, met, solucion, level=0):
+    # level: Para poder mostrar indentados los metodos y sub metodos que se van utilizando.
     # cubo: Cube que se va a resolver (se modifica durante la ejecucion del metodo)
     # solucion: Lista de los metodos utilizados en la ejecucion. Cada elemento de la lista es un objeto de tipo Sol
     # met: objeto de la clase Metodo, con los siguientes campos:
@@ -231,7 +231,7 @@ def ejecutarMetodo(cubo, met, solucion, nivel=0):
     #     posiciones: lista de posiciones del cubo en que se buscan las condiciones
     #     algoritmo: string
     if cubo.l < met.minLado:
-        solucion.append(Sol(nivel, 'Met', met.id, False, met, False, cubo.vars))
+        solucion.append(Sol(level, 'Met', met.id, False, met, False, cubo.vars))
         return (False, True)
     # la opcion 'repeat' es en realidad 6(l^2) veces, para no entrar en un loop infinito si hay un error en el metodo
     cantVeces = 6 * (cubo.l ** 2) if met.modo.upper() == 'REPEAT' else 0
@@ -250,7 +250,7 @@ def ejecutarMetodo(cubo, met, solucion, nivel=0):
         ddeK, htaK = cubo.str2rango(met.rangoK, checkRangoCero=False)
         cubo.vars.set('k', ddeK)
     iSol = len(solucion)
-    solucion.append(Sol(nivel, 'Met', met.id, False, met, False, cubo.vars))
+    solucion.append(Sol(level, 'Met', met.id, False, met, False, cubo.vars))
     hizoAlgo, success = False, False
     seguir, cant = True, 0
     while seguir and (cant < cantVeces):
@@ -258,11 +258,11 @@ def ejecutarMetodo(cubo, met, solucion, nivel=0):
             print('OVERFLOW !!!!')
             print(
                 'metodo: {0} len(soluc): {1}, cant: {2}, cantVeces: {3}'.format(met.id, len(solucion), cant, cantVeces))
-            solucion.append(Sol(nivel + 1, 'Pos', 'X2 X2 X2 X2', True, met, False, cubo.vars))
+            solucion.append(Sol(level + 1, 'Pos', 'X2 X2 X2 X2', True, met, False, cubo.vars))
             break
         seguir = False
         for idSubMetodo in met.subMetodos:
-            (hizo, success) = ejecutarMetodo(cubo, met.metodo(idSubMetodo), solucion, nivel + 1)
+            (hizo, success) = ejecutarMetodo(cubo, met.metodo(idSubMetodo), solucion, level + 1)
             hizoAlgo = hizoAlgo or hizo
             seguir = seguir or hizo
             if success and met.until1st.upper() == 'SUCCESS':
@@ -283,9 +283,9 @@ def ejecutarMetodo(cubo, met, solucion, nivel=0):
                 hizo = (posicion != '' or algoritmo != '')
                 if hizo:
                     if posicion != '':
-                        solucion.append(Sol(nivel + 1, 'Pos', posicion, hizo, met, False, cubo.vars))
+                        solucion.append(Sol(level + 1, 'Pos', posicion, hizo, met, False, cubo.vars))
                     if algoritmo != '':
-                        solucion.append(Sol(nivel + 1, 'Alg', algoritmo, hizo, met, False, cubo.vars))
+                        solucion.append(Sol(level + 1, 'Alg', algoritmo, hizo, met, False, cubo.vars))
                 hizoAlgo = hizoAlgo or hizo
                 seguir = seguir or hizo
         if not hizo and met.mirror and len(
@@ -307,10 +307,10 @@ def ejecutarMetodo(cubo, met, solucion, nivel=0):
                 hizo = (posicion != '' or algoritmo != '')
                 if hizo:
                     if posicion != '':
-                        solucion.append(Sol(nivel + 1, 'Pos', posicion, hizo, met, True, cubo.vars))
+                        solucion.append(Sol(level + 1, 'Pos', posicion, hizo, met, True, cubo.vars))
                     if algoritmo != '':
                         solucion.append(
-                            Sol(nivel + 1, 'Alg', '>< {0} ><'.format(algoritmo), hizo, met, True, cubo.vars))
+                            Sol(level + 1, 'Alg', '>< {0} ><'.format(algoritmo), hizo, met, True, cubo.vars))
                 hizoAlgo = hizoAlgo or hizo
                 seguir = seguir or hizo
         cant = cant + 1
@@ -347,7 +347,7 @@ def ejecutarMetodo(cubo, met, solucion, nivel=0):
 def cond2ListaCeldas(cubo, vars, listaCond):  # devuelve listaCeldas
     # listaCond es una lista de strings tipo 'cond' que puede tener sublistas con strings tipo cond
     #   las condiciones que se encuentran en la lista principal se evaluan como 'and', las condiciones que
-    #   se encuentren en las sublistas se evaluan como 'or' (solo se permiten dos niveles, lista y sublista)
+    #   se encuentren en las sublistas se evaluan como 'or' (solo se permiten dos levels, lista y sublista)
     # - cond es un string de la forma <cara>.<rango filas>.<rango columnas>.COLORS
     #     cara: id de la cara
     #     rangos de fila y columna: especificados con la sintaxis de str2movim
@@ -507,10 +507,10 @@ class Metodos:
                     ret.append(metId)
             return ret
 
-    def __init__(self, archivo='metodos.json'):
+    def __init__(self, archivo='methods.json'):
 
         from archivoMetodos import \
-            metodosHard  # mantengo un 'archivo' de metodos hardcodeado por si se borra el archivo metodos.json
+            metodosHard  # mantengo un 'archivo' de metodos hardcodeado por si se borra el archivo methods.json
         self.metodosHard = metodosHard
         self.archivo = archivo
         self.loadFromFile()
