@@ -70,61 +70,38 @@ def stripWords(string, sep=' '):
     return [w.strip() for w in string.split(sep) if w.strip()]
 
 
-def rango2X(desde, hasta, inc=(0, 0)):
-    # desde: tupla (fila,columna)
-    # hasta: tupla (fila,columna)
-    # inc: tupla (incremento fila, incremento columna)
-    # devuelve una lista de tuplas (i,j) que resultan de recorrer todo el rango por filas
-    # - para cada coordenada, si desde < hasta recorre esa coordenada en forma descendente
+def rangeRC(rowInterval, columnInterval, step=(0, 0)):
+    # rowInterval: tupla (init, finish)
+    # columnInterval: tupla (init, finish)
+    # step: tupla (incremento fila, incremento columna)
+    # devuelve un iterable de tuplas (r,c) que resultan de recorrer todo el rango por filas
+    # - para cada coordenada, si init > finish recorre esa coordenada en forma descendente
     # - el incremento por defecto para cada coordenada es 1, -1 o 0 segun se necesite
-    # - si para alguna coordenada el incremento se explicita incompatible con la relacion desde-hasta
-    #   se toma 1, -1 o 0
-    return rangoFC((desde[0], hasta[0]), (desde[1], hasta[1]), inc)
+    def safe_step(init, finish, s):
+        if init < finish:
+            return 1 if not s else abs(s)
+        elif init > finish:
+            return -1 if not s else -abs(s)
+        else:
+            return 0
 
+    rInit, rFinish = rowInterval
+    cInit, cFinish = columnInterval
+    rStep, cStep = safe_step(rInit, rFinish, step[0]), safe_step(cInit, cFinish, step[1])
 
-def rangoFC(rangoFilas, rangoColumnas, inc=(0, 0)):
-    # rangoFilas: tupla (desde, hasta)
-    # rangoColumnas: tupla (desde, hasta)
-    # inc: tupla (incremento fila, incremento columna)
-    # devuelve una lista de tuplas (i,j) que resultan de recorrer todo el rango por filas
-    # - para cada coordenada, si desde < hasta recorre esa coordenada en forma descendente
-    # - el incremento por defecto para cada coordenada es 1, -1 o 0 segun se necesite
-    # - si para alguna coordenada el incremento se explicita incompatible con la relacion desde-hasta
-    #   se toma 1, -1 o 0
-    iDesde, iHasta = rangoFilas
-    jDesde, jHasta = rangoColumnas
-    if iDesde < iHasta:
-        i = 1 if not inc[0] else inc[0]
-        i = i if i > 0 else -i
-    elif iDesde > iHasta:
-        i = -1 if not inc[0] else inc[0]
-        i = i if i < 0 else -i
-    else:
-        i = 0
-    if jDesde < jHasta:
-        j = 1 if not inc[1] else inc[1]
-        j = j if j > 0 else -j
-    elif jDesde > jHasta:
-        j = -1 if not inc[1] else inc[1]
-        j = j if j < 0 else -j
-    else:
-        j = 0
-    inc = (i, j)
-    ret = []
-    i = iDesde
-    while min(iDesde, iHasta) <= i <= max(iDesde, iHasta):
-        j = jDesde
-        while min(jDesde, jHasta) <= j <= max(jDesde, jHasta):
-            ret.append((i, j))
-            if inc[1]:
-                j = j + inc[1]
+    r = rInit
+    while min(rInit, rFinish) <= r <= max(rInit, rFinish):
+        c = cInit
+        while min(cInit, cFinish) <= c <= max(cInit, cFinish):
+            yield r, c
+            if cStep:
+                c += cStep
             else:
                 break
-        if inc[0]:
-            i = i + inc[0]
+        if rStep:
+            r += rStep
         else:
             break
-    return ret
 
 
 class Clase:

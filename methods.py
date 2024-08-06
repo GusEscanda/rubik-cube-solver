@@ -4,7 +4,7 @@ from pathlib import Path
 import json
 
 import cube as cb
-from util import stripWords, firstAndRest, rangoFC, Vars
+from util import stripWords, firstAndRest, rangeRC, Vars
 from cube import UP, DOWN, RIGHT, LEFT, NULL, DIRS, COLORS
 
 
@@ -361,7 +361,7 @@ def cond2ListaCeldas(cubo, vars, listaCond):  # devuelve listaCeldas
     #        - "->nombre" asigna el color de la celda a una variable llamada "nombre"
     #        - "==nombre" el color de la celda debe coincidir con el PREVIAMENTE ASIGNADO a la variable "nombre"
     #        - "!=nombre" el color de la celda debe ser distinto al PREVIAMENTE ASIGNADO a la variable "nombre"
-    listaCeldas = []
+    listaCeldas = []  # TODO: evaluar si no es mejor devolver in iterable (yield)
     for cond in listaCond:
         if cond[0:2].upper() == 'OR':
             listaCeldas.append(cond2ListaCeldas(cubo, vars, stripWords(cond[2:], ',')))
@@ -380,7 +380,7 @@ def cond2ListaCeldas(cubo, vars, listaCond):  # devuelve listaCeldas
             rangoFilas = cubo.str2rango(rangoFilas)
             rangoColumnas = cubo.str2rango(rangoColumnas)
 
-            for f, c in rangoFC(rangoFilas, rangoColumnas):
+            for f, c in rangeRC(rangoFilas, rangoColumnas):
                 listaCeldas.append((cara, f, c, colores))
     return listaCeldas
 
@@ -392,7 +392,7 @@ def mirrorCelda(cubo, celda):
     elif cara == 'L':
         cara = 'R'
     columna = cubo.l - 1 - columna
-    return (cara, fila, columna, color)
+    return cara, fila, columna, color
 
 
 class Metodos:
