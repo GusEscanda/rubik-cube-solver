@@ -7,27 +7,38 @@ from PyQt5 import Qt
 class Vars:
 
     def __init__(self, levels):
-        # levels: Lista de levels de variables (local, global, etc.). Se consultaran en el orden dado.
-        #          Puede ser una lista o un string. Los levels pueden ser cualquier cosa que pueda ser key en un
-        #          diccionario
+        """
+        Container that holds key:value pairs or vars (variables), organized in levels
+        :param levels: list of levels to hold the vars (ie 'local', 'global', 'level_A', 'level_B', etc.) or a
+                       string, in this case each char is a level (ie 'LG' as for local, global)
+        """
         self.levels = levels[:]
-        self.dicts = {}
-        for n in levels:
-            self.dicts[n] = {}  # guarda un dicconario para cada level
+        self.dicts = {level: {} for level in self.levels}
 
-    def set(self, var, valor, level=None):
-        # var: el nombre de la variable que voy a setear
-        # valor: el valor que le asigno a la variable
-        # level: debe ser un elemento de self.levels, si no lo es, lo agrego
+    def set(self, var, value, level=None):
+        """
+        Set the value of an existing or a new variable in a specified level
+        :param var: Name of the variable
+        :param value: Value to be set
+        :param level: Level that holds the var, if level=None the first level will be used, if level doesn't exist create it.
+        :return: The value just set
+        """
         if level is None:
             level = self.levels[0]
-        if level not in self.dicts:  # es mas rapido chequear existencia en el diccionario
+        if level not in self.dicts:
             self.dicts[level] = {}
             self.levels.append(level)
-        self.dicts[level][var] = valor
-        return valor
+        self.dicts[level][var] = value
+        return value
 
-    def get(self, var, default=None, level=''):
+    def get(self, var, default=None, level=None):
+        """
+        Get the value of a variable.
+        :param var: Name of the variable
+        :param default: Value to be returned if the variable doesn't exist
+        :param level: Level that holds the variable, if not specified, search for it in the different levels, in order
+        :return: The value of the first occurrence of var across the different levels or the default value
+        """
         if level:
             if level not in self.dicts:
                 return default
@@ -41,9 +52,13 @@ class Vars:
         return default
 
     def clear(self, level=None, var=None):
+        """
+        Erase a single var, a complete level or all the levels
+        :param level: The level to erase, if None erases all variables in all levels
+        :param var: The name of the variable to erase, if None erases all variables in the specified level
+        """
         if level is None:
-            for n in self.levels:
-                self.dicts[n] = {}
+            self.dicts = {level: {} for level in self.levels}
         else:
             if var is None:
                 self.dicts[level] = {}
@@ -51,6 +66,11 @@ class Vars:
                 self.dicts[level].pop(var)
 
     def vars(self, level=None):
+        """
+        Returns a dict containing the vars of a specified level
+        :param level: The level that holds the vars to be returned, if None, the 1st level will be used
+        :return: A dict containing the vars of the specified level
+        """
         if level is None:
             level = self.levels[0]
         return self.dicts[level]
