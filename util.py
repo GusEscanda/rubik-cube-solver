@@ -77,6 +77,12 @@ class Vars:
 
 
 def firstAndRest(string, sep=' '):
+    """
+    Splits a string in two parts using a separator
+    :param string: string to be split
+    :param sep: separator, the string will be split at the first appearance of sep
+    :return: tuple (the first part of the string until the 1st appearance of sep, the rest of the string)
+    """
     words = stripWords(string, sep)
     first, rest = '', ''
     if len(words) > 0:
@@ -87,16 +93,26 @@ def firstAndRest(string, sep=' '):
 
 
 def stripWords(string, sep=' '):
+    """
+    Returns a list of words, each of them without leading nor trailing blanks, using a separator
+    :param string: the string to be split
+    :param sep: the separator
+    :return: the list of striped chunks of the string
+    """
     return [w.strip() for w in string.split(sep) if w.strip()]
 
 
 def rangeRC(rowInterval, columnInterval, step=(0, 0)):
-    # rowInterval: tupla (init, finish)
-    # columnInterval: tupla (init, finish)
-    # step: tupla (incremento fila, incremento columna)
-    # devuelve un iterable de tuplas (r,c) que resultan de recorrer todo el rango por filas
-    # - para cada coordenada, si init > finish recorre esa coordenada en forma descendente
-    # - el incremento por defecto para cada coordenada es 1, -1 o 0 segun se necesite
+    """
+    Returns an iterable of tuples (row, column) with all the values in the rows interval and columns interval using
+    independent steps for rows and columns, the step for each dimension is set according to the relationship between
+    the initial and final value of it
+    :param rowInterval: tuple (init, finish) values of the rows. If init > finish, the step will be negative
+    :param columnInterval: tuple (init, finish) values of the columns. If init > finish, the step will be negative
+    :param step: tuple (rows step, columns step), the default for each one is 1, -1 or 0 based on the relationship
+                 of init and finish
+    :return: An iterable of all the pairs (row, column)
+    """
     def safe_step(init, finish, s):
         if init < finish:
             return 1 if not s else abs(s)
