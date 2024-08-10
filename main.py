@@ -23,7 +23,7 @@ from PyQt5.QtCore import pyqtSlot
 from PyQt5.QtWidgets import QApplication
 
 # cube
-from cube import Cube
+from cube import Cube, Face
 import methods as met
 from util import stripWords, firstAndRest, Vars
 from gallery import Gallery
@@ -110,7 +110,7 @@ class CubeVtk(Cube):
         mappCube = vtkPolyDataMapper()
         mappCube.SetInputConnection(cube.GetOutputPort())
         self.inicCoefUbicacion()
-        for cara in ('FBUDLR'):
+        for cara in Face.FACES:
             for f in range(self.l):
                 for c in range(self.l):
                     self.c[cara][f, c].actor = vtkActor()
@@ -130,7 +130,7 @@ class CubeVtk(Cube):
     def refreshActores(
             self):  # refresca la posicion de las celdas para que coincidan con la cara,fila,columna donde estan ubicadas
         mid = (self.l - 1) / 2
-        for cara, f, c in [(cara, f, c) for cara in 'FBUDLR' for f in range(self.l) for c in range(self.l)]:
+        for cara, f, c in [(cara, f, c) for cara in Face.FACES for f in range(self.l) for c in range(self.l)]:
             self.c[cara][f, c].actor.GetProperty().SetColor(vtkNamedColors().GetColor3d(self.c[cara][f, c].color))
             self.c[cara][f, c].actor.SetOrientation(self.angulo[cara])
             self.c[cara][f, c].actor.SetPosition(np.dot([f, c, 1], self.FC2xyz[cara]))
@@ -154,7 +154,7 @@ class CubeVtk(Cube):
     def refreshStyleCeldas(self):  # refresca el estilo del cubo (color del interior y gap de las "calcomanias")
         escInt = 0.98
         escala = np.cos(np.pi / 4) * (1 - self.gap)
-        for cara in ('FBUDLR'):
+        for cara in Face.FACES:
             for f in range(self.l):
                 for c in range(self.l):
                     self.c[cara][f, c].actor.SetScale(escala, escala, escala)
@@ -1771,7 +1771,7 @@ class MainWindow(Qt.QMainWindow):
                 t = time.time()
                 cantMovim = 0
                 while self.mezcladoPrevio.value() > 0:
-                    self.cubo.mezclar()
+                    self.cubo.shuffle()
                     self.cubo.refreshActores()
                     cuboAuxiliar = self.saveCubo()
                     self.soluc = []
@@ -1893,7 +1893,7 @@ class MainWindow(Qt.QMainWindow):
     @pyqtSlot()
     def clickBotonMezclar(self):
         self.anim.endAllJobs()
-        self.cubo.mezclar()
+        self.cubo.shuffle()
         self.cubo.refreshActores()
 
     @pyqtSlot()

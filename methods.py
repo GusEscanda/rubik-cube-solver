@@ -140,7 +140,7 @@ def matchCubo(cubo, vars, listaCeldas, posiciones=['-']):
     # cubo: cubo donde estoy verificando el matching
     # vars: objeto de tipo Vars, contiene los valores de las variables locales y globales definidas por el usuario
     # listaCeldas es una lista donde cada elemento es una tupla de la forma:
-    #    cara: 'FBUDLR'
+    #    cara: Face.FACES
     #    fila: fila
     #    columna: columna
     #    coloresPosibles: uno o varios colores separados por espacios, con que uno coincida se considera que hay coincidencia. Cada uno puede ser:
@@ -352,7 +352,7 @@ def cond2ListaCeldas(cubo, vars, listaCond):  # devuelve listaCeldas
     #     rangos de fila y columna: especificados con la sintaxis de str2movim
     #     colores: uno o varios colores segun especificacion de matchCubo (aqui no se procesan, solo se copian a la lista a devolver)
     # - listaCeldas es una lista donde cada elemento es una celda individual representada por una tupla de la forma:
-    #    cara: 'FBUDLR'
+    #    cara: Face.FACES
     #    fila: fila (convertida al rango 0 ... self.l-1)
     #    columna: columna (convertida al rango 0 ... self.l-1)
     #    coloresPosibles: uno o varios colores separados por espacios, con que uno coincida se considera que hay coincidencia. Cada uno puede ser:

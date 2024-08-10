@@ -22,88 +22,102 @@ class Face:
     DOWN = 'D'
     LEFT = 'L'
     RIGHT = 'R'
+    FACES = FRONT + BACK + UP + DOWN + LEFT + RIGHT
 
 
 COLORS = {
-    "F": "red",  # Front face
-    "B": "orange",  # Back face
-    "U": "white",  # Up face
-    "D": "yellow",  # Down face
-    "L": "green",
-    "R": "blue"
+    Face.FRONT: "red",
+    Face.BACK: "orange",
+    Face.UP: "white",
+    Face.DOWN: "yellow",
+    Face.LEFT: "green",
+    Face.RIGHT: "blue"
 }
 
 
-class Cube:
-    class ColorRel:
-        def __init__(self, cube):
-            # crea un diccionario que tiene todas las relaciones entre los colores de este cube
-            #      'a' = anticlockwise
-            #      'c' = clockwise
-            #      'o' = opuesto
-            self._colorRel = {}
-            for _ in range(4):
-                lcol = [cube.c['U'][cube.l - 1, cube.l - 1].color,  # clockwise esquina superior derecha
-                        cube.c['R'][0, 0].color,
-                        cube.c['F'][0, cube.l - 1].color
-                        ]
-                self.setRelColor('c', lcol)
-                lcol.reverse()
-                self.setRelColor('a', lcol)  # anticlockwise misma esquina
-                lcol = [cube.c['U'][cube.l - 1, 0].color,  # clockwise esquina superior izquierda
-                        cube.c['F'][0, 0].color,
-                        cube.c['L'][0, cube.l - 1].color
-                        ]
-                self.setRelColor('c', lcol)
-                lcol.reverse()
-                self.setRelColor('a', lcol)  # anticlockwise misma esquina
-                cube.mover('X')  # luego de 4 movimientos el cube queda igual que al principio
-            for color in self._colorRel:
-                for ccc in self._colorRel:
-                    if (ccc != color) and (ccc not in self._colorRel[color]['c']):
-                        opuesto = ccc
-                self.setRelColor('o', [color, opuesto])
+class ColorRel:
+    def __init__(self, cube):
+        """
+        Holds the relationship between the colors of the cube
+        Type of relationships:
+            'a' = anticlockwise
+            'c' = clockwise
+            'o' = opposite
+        :param cube: the cube to be inspected
+        """
+        self._colorRel = {}
+        for _ in range(4):
+            colorList = [
+                cube.c[Face.UP][cube.l - 1, cube.l - 1].color,  # clockwise top right corner
+                cube.c[Face.RIGHT][0, 0].color,
+                cube.c[Face.FRONT][0, cube.l - 1].color
+            ]
+            self.setRelColor('c', colorList)
+            colorList.reverse()
+            self.setRelColor('a', colorList)  # anticlockwise same corner
+            colorList = [
+                cube.c[Face.UP][cube.l - 1, 0].color,  # clockwise top left corner
+                cube.c[Face.FRONT][0, 0].color,
+                cube.c[Face.LEFT][0, cube.l - 1].color
+            ]
+            self.setRelColor('c', colorList)
+            colorList.reverse()
+            self.setRelColor('a', colorList)  # anticlockwise same corner
+            cube.mover('X')  # after 4 moves the cube returns to the original position
+        for color in self._colorRel:
+            opposite = ''
+            for ccc in self._colorRel:
+                if (ccc != color) and (ccc not in self._colorRel[color]['c']):
+                    opposite = ccc
+            self.setRelColor('o', [color, opposite])
 
-        def setRelColor(self, rel, listaColores):
-            # colorRel: diccionario indicando para cada color su relacion con los otros en este cube
-            # rel: relacion entre los colores de la lista.
-            #      'a' = anticlockwise
-            #      'c' = clockwise
-            #      'o' = opuesto
-            # listaColores: lista de colores que tienen la relacion rel entre si.
-            for c in range(len(listaColores)):
-                d = self._colorRel
-                i = c
-                if listaColores[i] not in d:
-                    d[listaColores[i]] = {}
-                d = d[listaColores[i]]
-                for _ in range(1, len(listaColores)):
-                    if rel not in d:
-                        d[rel] = {}
-                    d = d[rel]
-                    i = (i + 1) if i < len(listaColores) - 1 else 0
-                    if listaColores[i] not in d:
-                        d[listaColores[i]] = {}
-                    d = d[listaColores[i]]
-
-        def listCols(self, rel, color1, color2=False):
-            # devuelve una lista con el/los colores que tienen la relacion rel con los colores color1 y color2
+    def setRelColor(self, rel, colorList):
+        """
+        Updates the dict _colorRel to build the structure that hold all the relationships
+        :param rel: type of relationship ('a' = anticlockwise, 'c' = clockwise, 'o' = opposite)
+        :param colorList: list of the colors that have the relationship 'rel' between them
+        """
+        for c in range(len(colorList)):
             d = self._colorRel
-            if color1 not in d:
+            i = c
+            if colorList[i] not in d:
+                d[colorList[i]] = {}
+            d = d[colorList[i]]
+            for _ in range(1, len(colorList)):
+                if rel not in d:
+                    d[rel] = {}
+                d = d[rel]
+                i = (i + 1) if i < len(colorList) - 1 else 0
+                if colorList[i] not in d:
+                    d[colorList[i]] = {}
+                d = d[colorList[i]]
+
+    def listCols(self, rel, color1, color2=None):
+        """
+        Returns a list of colors that have the relationship 'rel' with 'color1' or the list of colors that have the relationship 'rel' with color1 and color2
+        :param rel: type of relationship ('a' = anticlockwise, 'c' = clockwise, 'o' = opposite)
+        :param color1: the name of the 1st color
+        :param color2: (optional) the name of the second color
+        :return: the list of colors that have this relationship with color1 and optionally color2
+        """
+        d = self._colorRel
+        if color1 not in d:
+            return []
+        d = d[color1]
+        if rel not in d:
+            return []
+        d = d[rel]
+        if color2:
+            if color2 not in d:
                 return []
-            d = d[color1]
+            d = d[color2]
             if rel not in d:
                 return []
             d = d[rel]
-            if color2:
-                if color2 not in d:
-                    return []
-                d = d[color2]
-                if rel not in d:
-                    return []
-                d = d[rel]
-            return list(d.keys())
+        return list(d.keys())
 
+
+class Cube:
     class Connection:
         def __init__(self, cara, dir, inv):
             self.cara = cara
@@ -176,11 +190,11 @@ class Cube:
         self.conn['R'][Dir.RIGHT] = self.Connection(cara='B', dir=Dir.RIGHT, inv=False)
 
         if not self.white:
-            self.colorRel = self.ColorRel(self)
+            self.colorRel = ColorRel(self)
         return
 
     def inicCeldas(self):
-        for cara in 'FBUDLR':
+        for cara in Face.FACES:
             for f in range(self.l):
                 for c in range(self.l):
                     self.c[cara][f, c].color = COLORS[cara] if not self.white else 'white'
@@ -432,24 +446,25 @@ class Cube:
                 Dir.LEFT: self.c[caraVecina][xx, -1]
                 }[cxnVecina.dir]
 
-    def mezclar(self, cantMovim=0):
-        movesList = []
-        if cantMovim <= 0:
-            cantMovim = self.l * 20
-        for _ in range(cantMovim):
+    def shuffle(self, qty=0):
+        moves = []
+        if qty <= 0:
+            qty = self.l * 20
+        dirs = list(set(Dir.DICT.keys()) - {'0'})
+        for _ in range(qty):
             cara = np.random.choice(['F', 'B', 'U', 'D', 'L', 'R'])
             rrr = (np.random.randint(self.l), np.random.randint(self.l))
             rrr = (min(rrr), max(rrr))
-            direc = np.random.choice(['u', 'd', 'l', 'r'])
-            multip = np.random.randint(1, 4)
-            movesList.append(f'{cara}.{str(rrr[0] + 1)}:{str(rrr[1] + 1)}.{str(multip)}{direc}')
-            self.unMovimiento(cara, rrr, Dir.DICT[direc], multip)
-        return ' '.join(movesList)
+            direction = np.random.choice(dirs)
+            multi = np.random.randint(1, 4)
+            moves.append(f'{cara}.{str(rrr[0] + 1)}:{str(rrr[1] + 1)}.{str(multi)}{direction}')
+            self.unMovimiento(cara, rrr, Dir.DICT[direction], multi)
+        return ' '.join(moves)
 
 
 def __controlPiezas(cube):
     piezas = {}
-    for cara in 'FBUDLR':
+    for cara in Face.FACES:
         for x in range(1, cube.l - 1):
             piezas[cube.c[cara][0, x].id] = cube.vecina(cara, x, Dir.UP).id
         for x in range(1, cube.l - 1):
@@ -472,7 +487,7 @@ def __controlPiezas(cube):
 def test():
     cube = Cube(8)
 
-    for cara in 'FBUDLR':
+    for cara in Face.FACES:
         print(cara)
         for i in range(cube.l):
             for j in range(cube.l):
@@ -489,7 +504,7 @@ def test():
     movim = input("Movimiento(s) : ")
     while movim:
         cube.mover(movim)
-        for cara in 'FBUDLR':
+        for cara in Face.FACES:
             print('Cara :', cara)
             for i in range(cube.l):
                 for j in range(cube.l):
@@ -503,11 +518,11 @@ def test():
     if not cant:
         cant = 0
     for _ in range(int(cant)):
-        print(cube.mezclar(1))
+        print(cube.shuffle(1))
         if piezas != __controlPiezas(cube):
             break
 
-    for cara in 'FBUDLR':
+    for cara in Face.FACES:
         print('Cara :', cara)
         for i in range(cube.l):
             for j in range(cube.l):
