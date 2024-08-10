@@ -59,7 +59,7 @@ class Gallery:
 
         self.casting = {}
 
-        # mapper Vacio
+        # mapper Empty
         points = vtk.vtkPoints()
         points.SetNumberOfPoints(5)
         points.SetPoint(0, 0.0, 0.0, -0.1)
@@ -81,7 +81,7 @@ class Gallery:
         self.casting["->"] = self.Shape(mapId=len(self.map)-1, colorId=len(self.colors)-1)
         self.casting["=>"] = self.Shape(mapId=len(self.map)-1, colorId=len(self.colors)-1)
 
-        # mapper Tachar
+        # mapper Cross out
         cellArray = vtk.vtkCellArray()
         cellArray.InsertNextCell(2)
         cellArray.InsertCellPoint(1)
@@ -98,11 +98,11 @@ class Gallery:
         self.map.append(mapper)
         self.casting["!="] = self.Shape(mapId=len(self.map)-1, colorId=len(self.colors)-1)
 
-        # mapper Circulo
+        # mapper Circle
         source = vtk.vtkRegularPolygonSource()
         source.SetNumberOfSides(32)
         source.SetRadius(2.5)
-        source.GeneratePolygonOff()  # para que sea una circunferencia y no un circulo
+        source.GeneratePolygonOff()  # make it a hollow circle
         mapper = vtk.vtkPolyDataMapper()
         mapper.SetInputConnection(source.GetOutputPort())
         self.map.append(mapper)

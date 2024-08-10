@@ -1,41 +1,63 @@
-# Empiezo a jugar con las estructuras de datos y procesos basicos de un cubo Rubik...
+# Basic data structures and processes of a Rubik's cube
 
 import numpy as np
 from util import stripWords, firstAndRest, Clase, Vars
 
-UP = (-1, 0)  # ( incremento en la fila, incremento en la columna )
-DOWN = (1, 0)
-RIGHT = (0, 1)
-LEFT = (0, -1)
-NULL = (0, 0)
-DIRS = {'u': UP, 'd': DOWN, 'r': RIGHT, 'l': LEFT, '0': NULL}
-COLORS = {"F": "red", "B": "orange", "U": "white", "D": "yellow", "L": "green", "R": "blue"}
+
+# Directions
+class Dir:
+    UP = (-1, 0)  # ( row offset, column offset )
+    DOWN = (1, 0)
+    RIGHT = (0, 1)
+    LEFT = (0, -1)
+    NULL = (0, 0)
+    DICT = {'u': UP, 'd': DOWN, 'r': RIGHT, 'l': LEFT, '0': NULL}
+
+
+# Faces of the cube
+class Face:
+    FRONT = 'F'
+    BACK = 'B'
+    UP = 'U'
+    DOWN = 'D'
+    LEFT = 'L'
+    RIGHT = 'R'
+
+
+COLORS = {
+    "F": "red",  # Front face
+    "B": "orange",  # Back face
+    "U": "white",  # Up face
+    "D": "yellow",  # Down face
+    "L": "green",
+    "R": "blue"
+}
 
 
 class Cube:
     class ColorRel:
-        def __init__(self, cubo):
-            # crea un diccionario que tiene todas las relaciones entre los COLORS de este cubo
+        def __init__(self, cube):
+            # crea un diccionario que tiene todas las relaciones entre los colores de este cube
             #      'a' = anticlockwise
             #      'c' = clockwise
             #      'o' = opuesto
             self._colorRel = {}
             for _ in range(4):
-                lcol = [cubo.c['U'][cubo.l - 1, cubo.l - 1].color,  # clockwise esquina superior derecha
-                        cubo.c['R'][0, 0].color,
-                        cubo.c['F'][0, cubo.l - 1].color
+                lcol = [cube.c['U'][cube.l - 1, cube.l - 1].color,  # clockwise esquina superior derecha
+                        cube.c['R'][0, 0].color,
+                        cube.c['F'][0, cube.l - 1].color
                         ]
                 self.setRelColor('c', lcol)
                 lcol.reverse()
                 self.setRelColor('a', lcol)  # anticlockwise misma esquina
-                lcol = [cubo.c['U'][cubo.l - 1, 0].color,  # clockwise esquina superior izquierda
-                        cubo.c['F'][0, 0].color,
-                        cubo.c['L'][0, cubo.l - 1].color
+                lcol = [cube.c['U'][cube.l - 1, 0].color,  # clockwise esquina superior izquierda
+                        cube.c['F'][0, 0].color,
+                        cube.c['L'][0, cube.l - 1].color
                         ]
                 self.setRelColor('c', lcol)
                 lcol.reverse()
                 self.setRelColor('a', lcol)  # anticlockwise misma esquina
-                cubo.mover('X')  # luego de 4 movimientos el cubo queda igual que al principio
+                cube.mover('X')  # luego de 4 movimientos el cube queda igual que al principio
             for color in self._colorRel:
                 for ccc in self._colorRel:
                     if (ccc != color) and (ccc not in self._colorRel[color]['c']):
@@ -43,12 +65,12 @@ class Cube:
                 self.setRelColor('o', [color, opuesto])
 
         def setRelColor(self, rel, listaColores):
-            # colorRel: diccionario indicando para cada color su relacion con los otros en este cubo
-            # rel: relacion entre los COLORS de la lista.
+            # colorRel: diccionario indicando para cada color su relacion con los otros en este cube
+            # rel: relacion entre los colores de la lista.
             #      'a' = anticlockwise
             #      'c' = clockwise
             #      'o' = opuesto
-            # listaColores: lista de COLORS que tienen la relacion rel entre si.
+            # listaColores: lista de colores que tienen la relacion rel entre si.
             for c in range(len(listaColores)):
                 d = self._colorRel
                 i = c
@@ -65,7 +87,7 @@ class Cube:
                     d = d[listaColores[i]]
 
         def listCols(self, rel, color1, color2=False):
-            # devuelve una lista con el/los COLORS que tienen la relacion rel con los COLORS color1 y color2
+            # devuelve una lista con el/los colores que tienen la relacion rel con los colores color1 y color2
             d = self._colorRel
             if color1 not in d:
                 return []
@@ -91,7 +113,7 @@ class Cube:
     def __init__(self, tamanio=3, white=False):
 
         self.l = tamanio  # cada cara tendra l x l celdas
-        self.white = white  # True si es un cubo con todas las caras blancas (util para la carga de la base de datos de metodos de armado)
+        self.white = white  # True si es un cube con todas las caras blancas (util para la carga de la base de datos de metodos de armado)
         self.vars = Vars('c')  # Variables para conversion de coordenadas
         self.vars.set('T', 1)
         self.vars.set('t', 2)
@@ -117,48 +139,48 @@ class Cube:
         self.c['L'] = np.array([[Clase() for c in range(self.l)] for r in range(self.l)])  # Left
         self.c['R'] = np.array([[Clase() for c in range(self.l)] for r in range(self.l)])  # Right
 
-        # llenar las celdas (para otro tipo de cubo, con info distina en las celdas, escribir otro metodo de llenado)
+        # llenar las celdas (para otro tipo de cube, con info distina en las celdas, escribir otro metodo de llenado)
         self.inicCeldas()
 
         # conexiones entre las caras (que cara conecta con cual en cada uno de sus lados y si las coordenadas se invierten al pasar a la cara contigua
         self.conn = {'F': {}, 'B': {}, 'U': {}, 'D': {}, 'L': {}, 'R': {}}
         # conectar la cara frontal con las adyacentes 
-        self.conn['F'][UP] = self.Connection(cara='U', dir=UP, inv=False)
-        self.conn['F'][DOWN] = self.Connection(cara='D', dir=DOWN, inv=False)
-        self.conn['F'][LEFT] = self.Connection(cara='L', dir=LEFT, inv=False)
-        self.conn['F'][RIGHT] = self.Connection(cara='R', dir=RIGHT, inv=False)
+        self.conn['F'][Dir.UP] = self.Connection(cara='U', dir=Dir.UP, inv=False)
+        self.conn['F'][Dir.DOWN] = self.Connection(cara='D', dir=Dir.DOWN, inv=False)
+        self.conn['F'][Dir.LEFT] = self.Connection(cara='L', dir=Dir.LEFT, inv=False)
+        self.conn['F'][Dir.RIGHT] = self.Connection(cara='R', dir=Dir.RIGHT, inv=False)
         # conectar la cara de arriba con las adyacentes 
-        self.conn['U'][UP] = self.Connection(cara='B', dir=DOWN, inv=True)
-        self.conn['U'][DOWN] = self.Connection(cara='F', dir=DOWN, inv=False)
-        self.conn['U'][LEFT] = self.Connection(cara='L', dir=DOWN, inv=False)
-        self.conn['U'][RIGHT] = self.Connection(cara='R', dir=DOWN, inv=True)
+        self.conn['U'][Dir.UP] = self.Connection(cara='B', dir=Dir.DOWN, inv=True)
+        self.conn['U'][Dir.DOWN] = self.Connection(cara='F', dir=Dir.DOWN, inv=False)
+        self.conn['U'][Dir.LEFT] = self.Connection(cara='L', dir=Dir.DOWN, inv=False)
+        self.conn['U'][Dir.RIGHT] = self.Connection(cara='R', dir=Dir.DOWN, inv=True)
         # conectar la cara de abajo con las adyacentes 
-        self.conn['D'][UP] = self.Connection(cara='F', dir=UP, inv=False)
-        self.conn['D'][DOWN] = self.Connection(cara='B', dir=UP, inv=True)
-        self.conn['D'][LEFT] = self.Connection(cara='L', dir=UP, inv=True)
-        self.conn['D'][RIGHT] = self.Connection(cara='R', dir=UP, inv=False)
+        self.conn['D'][Dir.UP] = self.Connection(cara='F', dir=Dir.UP, inv=False)
+        self.conn['D'][Dir.DOWN] = self.Connection(cara='B', dir=Dir.UP, inv=True)
+        self.conn['D'][Dir.LEFT] = self.Connection(cara='L', dir=Dir.UP, inv=True)
+        self.conn['D'][Dir.RIGHT] = self.Connection(cara='R', dir=Dir.UP, inv=False)
         # conectar la cara de atras con las adyacentes 
-        self.conn['B'][UP] = self.Connection(cara='U', dir=DOWN, inv=True)
-        self.conn['B'][DOWN] = self.Connection(cara='D', dir=UP, inv=True)
-        self.conn['B'][LEFT] = self.Connection(cara='R', dir=LEFT, inv=False)
-        self.conn['B'][RIGHT] = self.Connection(cara='L', dir=RIGHT, inv=False)
+        self.conn['B'][Dir.UP] = self.Connection(cara='U', dir=Dir.DOWN, inv=True)
+        self.conn['B'][Dir.DOWN] = self.Connection(cara='D', dir=Dir.UP, inv=True)
+        self.conn['B'][Dir.LEFT] = self.Connection(cara='R', dir=Dir.LEFT, inv=False)
+        self.conn['B'][Dir.RIGHT] = self.Connection(cara='L', dir=Dir.RIGHT, inv=False)
         # conectar la cara izquierda con las adyacentes 
-        self.conn['L'][UP] = self.Connection(cara='U', dir=RIGHT, inv=False)
-        self.conn['L'][DOWN] = self.Connection(cara='D', dir=RIGHT, inv=True)
-        self.conn['L'][LEFT] = self.Connection(cara='B', dir=LEFT, inv=False)
-        self.conn['L'][RIGHT] = self.Connection(cara='F', dir=RIGHT, inv=False)
+        self.conn['L'][Dir.UP] = self.Connection(cara='U', dir=Dir.RIGHT, inv=False)
+        self.conn['L'][Dir.DOWN] = self.Connection(cara='D', dir=Dir.RIGHT, inv=True)
+        self.conn['L'][Dir.LEFT] = self.Connection(cara='B', dir=Dir.LEFT, inv=False)
+        self.conn['L'][Dir.RIGHT] = self.Connection(cara='F', dir=Dir.RIGHT, inv=False)
         # conectar la cara derecha con las adyacentes 
-        self.conn['R'][UP] = self.Connection(cara='U', dir=LEFT, inv=True)
-        self.conn['R'][DOWN] = self.Connection(cara='D', dir=LEFT, inv=False)
-        self.conn['R'][LEFT] = self.Connection(cara='F', dir=LEFT, inv=False)
-        self.conn['R'][RIGHT] = self.Connection(cara='B', dir=RIGHT, inv=False)
+        self.conn['R'][Dir.UP] = self.Connection(cara='U', dir=Dir.LEFT, inv=True)
+        self.conn['R'][Dir.DOWN] = self.Connection(cara='D', dir=Dir.LEFT, inv=False)
+        self.conn['R'][Dir.LEFT] = self.Connection(cara='F', dir=Dir.LEFT, inv=False)
+        self.conn['R'][Dir.RIGHT] = self.Connection(cara='B', dir=Dir.RIGHT, inv=False)
 
         if not self.white:
             self.colorRel = self.ColorRel(self)
         return
 
     def inicCeldas(self):
-        for cara in ('FBUDLR'):
+        for cara in 'FBUDLR':
             for f in range(self.l):
                 for c in range(self.l):
                     self.c[cara][f, c].color = COLORS[cara] if not self.white else 'white'
@@ -209,7 +231,7 @@ class Cube:
         # cualquier movimiento que comience con '><' se considera espejado respecto a un plano definido por los
         # ejes Z e Y
         mm = mov
-        idCara, direc, rango, multip = '', NULL, (0, 0), 0
+        idCara, direc, rango, multip = '', Dir.NULL, (0, 0), 0
 
         espejo = False
         if mm[0:2] == '><':
@@ -228,7 +250,7 @@ class Cube:
                 multip, mm = int(mm[:1]), mm[1:]
             mm = mm[:1]
             if mm in 'udlrUDLR':
-                direc = DIRS[mm.lower()]
+                direc = Dir.DICT[mm.lower()]
                 mm = ''  # ya no debo procesar mas a mm, tengo todos los datos para devolver
             else:  # mm in 'caCA' (clockwise o anticlockwise) => simulo un movimiento tipo "Rubik estandar"
                 mm = idCara + str(multip) + ("'" if mm in 'aA' else "")
@@ -254,22 +276,22 @@ class Cube:
                 # bloque central sin las caras laterales
                 rango = (1, self.l - 2)
             elif idCara in 'XYZxyz':  # X Y Z lo hago equivalente a x y z (esto si se suele usar en upper y lower indistintamente)
-                # rango completo, cambia la orientacion del cubo
+                # rango completo, cambia la orientacion del cube
                 rango = (0, self.l - 1)
 
             cara, direc = '', ''
             if idCara in "FfSsZz":
-                cara, direc = 'R', DOWN
+                cara, direc = 'R', Dir.DOWN
             elif idCara in "Bb":
-                cara, direc = 'L', DOWN
+                cara, direc = 'L', Dir.DOWN
             elif idCara in "LlMm":
-                cara, direc = 'F', DOWN
+                cara, direc = 'F', Dir.DOWN
             elif idCara in "RrXx":
-                cara, direc = 'B', DOWN
+                cara, direc = 'B', Dir.DOWN
             elif idCara in "UuYy":
-                cara, direc = 'F', LEFT
+                cara, direc = 'F', Dir.LEFT
             elif idCara in "DdEe":
-                cara, direc = 'F', RIGHT
+                cara, direc = 'F', Dir.RIGHT
                 rango = (self.l - 1 - rango[1],
                          self.l - 1 - rango[0])  # solo en el caso de mirar desde abajo, invierto la seleccion del rango
             idCara = cara
@@ -281,9 +303,9 @@ class Cube:
                 idCara = 'L'
             elif idCara == 'L':
                 idCara = 'R'
-            if direc == UP or direc == DOWN:
+            if direc == Dir.UP or direc == Dir.DOWN:
                 rango = (self.l - 1 - rango[1], self.l - 1 - rango[0])
-            elif direc == LEFT or direc == RIGHT:
+            elif direc == Dir.LEFT or direc == Dir.RIGHT:
                 direc = (-direc[0], -direc[1])
 
         return idCara, rango, direc, multip
@@ -315,14 +337,14 @@ class Cube:
             self.unMovimiento(idCara, rango, direc, multip, celdasMovidas)
             if animacion:
                 connCara = self.conn[idCara]
-                if (direc == RIGHT) or (direc == LEFT):
-                    caraAnticlockwise = connCara[UP].cara if direc == RIGHT else connCara[DOWN].cara
-                else:  # (direc == UP) or (direc == DOWN)
-                    caraAnticlockwise = connCara[LEFT].cara if direc == UP else connCara[RIGHT].cara
+                if (direc == Dir.RIGHT) or (direc == Dir.LEFT):
+                    caraAnticlockwise = connCara[Dir.UP].cara if direc == Dir.RIGHT else connCara[Dir.DOWN].cara
+                else:  # (direc == Dir.UP) or (direc == Dir.DOWN)
+                    caraAnticlockwise = connCara[Dir.LEFT].cara if direc == Dir.UP else connCara[Dir.RIGHT].cara
         return celdasMovidas, caraAnticlockwise
 
     def readWriteCeldas(self, cara, rango, direc, set=False, celdas=[], celdasMovidas=False):
-        # - Lee (y eventualmente reemplaza) un rango de celdas de la matriz de una cara del cubo
+        # - Lee (y eventualmente reemplaza) un rango de celdas de la matriz de una cara del cube
         # - rango: es una tupla (desde,hasta) ordenada, es decir que si esta en orden inverso, las celdas se leeran tambien en orden inverso
         # - direc: es la direccion del movimiento, si es arriba o abajo, el rango es de columnas (se toman entonces todas las filas)
         #          si direc es derecha o izquierda el rango es de filas y se toman todas las columnas
@@ -334,16 +356,16 @@ class Cube:
         rinv = 1
         if rango[0] > rango[1]:
             rinv = -1
-        if direc == RIGHT:
+        if direc == Dir.RIGHT:
             f, c = rango[0], 0
             rf, rc = rinv, 0
-        elif direc == LEFT:
+        elif direc == Dir.LEFT:
             f, c = rango[0], self.l - 1
             rf, rc = rinv, 0
-        elif direc == DOWN:
+        elif direc == Dir.DOWN:
             f, c = 0, rango[0]
             rf, rc = 0, rinv
-        elif direc == UP:
+        elif direc == Dir.UP:
             f, c = self.l - 1, rango[0]
             rf, rc = 0, rinv
         ret = []
@@ -363,9 +385,9 @@ class Cube:
 
     def unMovimiento(self, idCara, rango, direc, multip=1, celdasMovidas=False):
         for _ in range(multip):
-            # Hace un movimiento del cubo (solo hace movimientos para direccciones 'udlr')
+            # Hace un movimiento del cube (solo hace movimientos para direccciones 'udlr')
             cara, rr, dd = idCara, rango, direc
-            # copiar el sector de celdas dado por rango y direc, en las distintas caras del cubo, rotando 4 veces en direccion direc
+            # copiar el sector de celdas dado por rango y direc, en las distintas caras del cube, rotando 4 veces en direccion direc
             celdas = self.readWriteCeldas(cara, rr, dd)
             for _ in range(4):
                 conn = self.conn[cara][dd]
@@ -375,24 +397,24 @@ class Cube:
                 celdas = self.readWriteCeldas(cara, rr, dd, set=True, celdas=celdas, celdasMovidas=celdasMovidas)
             # cuando el rango incluye uno o ambos bordes rotar la(s) cara(s) lateral(es), en sentido horario o antihorario
             if min(rango) == 0:
-                if (direc == RIGHT) or (direc == LEFT):
-                    cara = self.conn[idCara][UP].cara
-                    dirRotacion = 1 if direc == RIGHT else 3  # 1 = antihorario, 3 = horario
-                else:  # (direc == UP) or (direc == DOWN)
-                    cara = self.conn[idCara][LEFT].cara
-                    dirRotacion = 1 if direc == UP else 3  # 1 = antihorario, 3 = horario
+                if (direc == Dir.RIGHT) or (direc == Dir.LEFT):
+                    cara = self.conn[idCara][Dir.UP].cara
+                    dirRotacion = 1 if direc == Dir.RIGHT else 3  # 1 = antihorario, 3 = horario
+                else:  # (direc == Dir.UP) or (direc == Dir.DOWN)
+                    cara = self.conn[idCara][Dir.LEFT].cara
+                    dirRotacion = 1 if direc == Dir.UP else 3  # 1 = antihorario, 3 = horario
                 self.c[cara] = np.rot90(self.c[cara], dirRotacion)
                 if type(celdasMovidas) == list:
                     for f in range(self.l):
                         for c in range(self.l):
                             celdasMovidas.append((cara, f, c))
             if max(rango) == self.l - 1:
-                if (direc == RIGHT) or (direc == LEFT):
-                    cara = self.conn[idCara][DOWN].cara
-                    dirRotacion = 1 if direc == LEFT else 3  # 1 = antihorario, 3 = horario
-                else:  # (direc == UP) or (direc == DOWN)
-                    cara = self.conn[idCara][RIGHT].cara
-                    dirRotacion = 1 if direc == DOWN else 3  # 1 = antihorario, 3 = horario
+                if (direc == Dir.RIGHT) or (direc == Dir.LEFT):
+                    cara = self.conn[idCara][Dir.DOWN].cara
+                    dirRotacion = 1 if direc == Dir.LEFT else 3  # 1 = antihorario, 3 = horario
+                else:  # (direc == Dir.UP) or (direc == Dir.DOWN)
+                    cara = self.conn[idCara][Dir.RIGHT].cara
+                    dirRotacion = 1 if direc == Dir.DOWN else 3  # 1 = antihorario, 3 = horario
                 self.c[cara] = np.rot90(self.c[cara], dirRotacion)
                 if type(celdasMovidas) == list:
                     for f in range(self.l):
@@ -404,14 +426,14 @@ class Cube:
         cxnVecina = self.conn[cara][direc]
         caraVecina = cxnVecina.cara
         xx = {False: coord, True: self.l - coord - 1}[cxnVecina.inv]
-        return {DOWN: self.c[caraVecina][0, xx],
-                UP: self.c[caraVecina][-1, xx],
-                RIGHT: self.c[caraVecina][xx, 0],
-                LEFT: self.c[caraVecina][xx, -1]
+        return {Dir.DOWN: self.c[caraVecina][0, xx],
+                Dir.UP: self.c[caraVecina][-1, xx],
+                Dir.RIGHT: self.c[caraVecina][xx, 0],
+                Dir.LEFT: self.c[caraVecina][xx, -1]
                 }[cxnVecina.dir]
 
     def mezclar(self, cantMovim=0):
-        ret = ''
+        movesList = []
         if cantMovim <= 0:
             cantMovim = self.l * 20
         for _ in range(cantMovim):
@@ -420,58 +442,58 @@ class Cube:
             rrr = (min(rrr), max(rrr))
             direc = np.random.choice(['u', 'd', 'l', 'r'])
             multip = np.random.randint(1, 4)
-            ret = ret + cara + '.' + str(rrr[0] + 1) + ':' + str(rrr[1] + 1) + '.' + str(multip) + direc + ' '
-            self.unMovimiento(cara, rrr, DIRS[direc], multip)
-        return ret
+            movesList.append(f'{cara}.{str(rrr[0] + 1)}:{str(rrr[1] + 1)}.{str(multip)}{direc}')
+            self.unMovimiento(cara, rrr, Dir.DICT[direc], multip)
+        return ' '.join(movesList)
 
 
-def __controlPiezas(cubo):
+def __controlPiezas(cube):
     piezas = {}
     for cara in 'FBUDLR':
-        for x in range(1, cubo.l - 1):
-            piezas[cubo.c[cara][0, x].id] = cubo.vecina(cara, x, UP).id
-        for x in range(1, cubo.l - 1):
-            piezas[cubo.c[cara][-1, x].id] = cubo.vecina(cara, x, DOWN).id
-        for x in range(1, cubo.l - 1):
-            piezas[cubo.c[cara][x, 0].id] = cubo.vecina(cara, x, LEFT).id
-        for x in range(1, cubo.l - 1):
-            piezas[cubo.c[cara][x, -1].id] = cubo.vecina(cara, x, RIGHT).id
-        piezas[cubo.c[cara][0, 0].id + 'H'] = cubo.vecina(cara, 0, LEFT).id
-        piezas[cubo.c[cara][0, 0].id + 'A'] = cubo.vecina(cara, 0, UP).id
-        piezas[cubo.c[cara][0, -1].id + 'H'] = cubo.vecina(cara, cubo.l - 1, UP).id
-        piezas[cubo.c[cara][0, -1].id + 'A'] = cubo.vecina(cara, 0, RIGHT).id
-        piezas[cubo.c[cara][-1, 0].id + 'H'] = cubo.vecina(cara, 0, DOWN).id
-        piezas[cubo.c[cara][-1, 0].id + 'A'] = cubo.vecina(cara, cubo.l - 1, LEFT).id
-        piezas[cubo.c[cara][-1, -1].id + 'H'] = cubo.vecina(cara, cubo.l - 1, RIGHT).id
-        piezas[cubo.c[cara][-1, -1].id + 'A'] = cubo.vecina(cara, cubo.l - 1, DOWN).id
+        for x in range(1, cube.l - 1):
+            piezas[cube.c[cara][0, x].id] = cube.vecina(cara, x, Dir.UP).id
+        for x in range(1, cube.l - 1):
+            piezas[cube.c[cara][-1, x].id] = cube.vecina(cara, x, Dir.DOWN).id
+        for x in range(1, cube.l - 1):
+            piezas[cube.c[cara][x, 0].id] = cube.vecina(cara, x, Dir.LEFT).id
+        for x in range(1, cube.l - 1):
+            piezas[cube.c[cara][x, -1].id] = cube.vecina(cara, x, Dir.RIGHT).id
+        piezas[cube.c[cara][0, 0].id + 'H'] = cube.vecina(cara, 0, Dir.LEFT).id
+        piezas[cube.c[cara][0, 0].id + 'A'] = cube.vecina(cara, 0, Dir.UP).id
+        piezas[cube.c[cara][0, -1].id + 'H'] = cube.vecina(cara, cube.l - 1, Dir.UP).id
+        piezas[cube.c[cara][0, -1].id + 'A'] = cube.vecina(cara, 0, Dir.RIGHT).id
+        piezas[cube.c[cara][-1, 0].id + 'H'] = cube.vecina(cara, 0, Dir.DOWN).id
+        piezas[cube.c[cara][-1, 0].id + 'A'] = cube.vecina(cara, cube.l - 1, Dir.LEFT).id
+        piezas[cube.c[cara][-1, -1].id + 'H'] = cube.vecina(cara, cube.l - 1, Dir.RIGHT).id
+        piezas[cube.c[cara][-1, -1].id + 'A'] = cube.vecina(cara, cube.l - 1, Dir.DOWN).id
     return piezas
 
 
 def test():
-    cubo = Cube(8)
+    cube = Cube(8)
 
     for cara in 'FBUDLR':
         print(cara)
-        for i in range(cubo.l):
-            for j in range(cubo.l):
-                print(cubo.c[cara][i, j].id, end=' ')
+        for i in range(cube.l):
+            for j in range(cube.l):
+                print(cube.c[cara][i, j].id, end=' ')
             print()
     print()
 
     print('piezas:')
-    piezas = __controlPiezas(cubo)
+    piezas = __controlPiezas(cube)
     print(piezas)
 
     print()
     print('Hacer movimientos')
     movim = input("Movimiento(s) : ")
     while movim:
-        cubo.mover(movim)
+        cube.mover(movim)
         for cara in 'FBUDLR':
             print('Cara :', cara)
-            for i in range(cubo.l):
-                for j in range(cubo.l):
-                    print(cubo.c[cara][i, j].id, end=' ')
+            for i in range(cube.l):
+                for j in range(cube.l):
+                    print(cube.c[cara][i, j].id, end=' ')
                 print()
             print()
         movim = input("Movimiento(s) : ")
@@ -481,20 +503,20 @@ def test():
     if not cant:
         cant = 0
     for _ in range(int(cant)):
-        print(cubo.mezclar(1))
-        if piezas != __controlPiezas(cubo):
+        print(cube.mezclar(1))
+        if piezas != __controlPiezas(cube):
             break
 
     for cara in 'FBUDLR':
         print('Cara :', cara)
-        for i in range(cubo.l):
-            for j in range(cubo.l):
-                print(cubo.c[cara][i, j].id, end=' ')
+        for i in range(cube.l):
+            for j in range(cube.l):
+                print(cube.c[cara][i, j].id, end=' ')
             print()
         print()
 
     print('control piezas...')
-    piezas2 = __controlPiezas(cubo)
+    piezas2 = __controlPiezas(cube)
     print()
     if piezas == piezas2:
         print('Las piezas se mantuvieron coherentes!!!')

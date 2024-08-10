@@ -18,12 +18,12 @@
 #     subMetodos: (idSubMetodo1, idSubMetodo2, idSubMetodo3, ....)
 #     until1st: '-', 'Failure', 'Success' (ejecuta todos los submetodos o hasta el 1ro que falle o el 1ro que tenga exito)
 #     listaCondiciones: (cond1, cond2, cond3, .... ) # por claridad solo especificar subMetodos o listaCondiciones pero no ambas...
-#          condicion: <cara>.<rango filas>.<rango columnas>.<COLORS posibles>
+#          condicion: <cara>.<rango filas>.<rango columnas>.<colores posibles>
 #                cara: U, D, F, B, L, R (Up, Down, Front, Back, Left, Right)
 #                rango filas/columnas: <coord desde>[:<coord hasta>]
 #                     coord desde/ coord hasta: coordenada dentro de la cara, (1,1) es el angulo superior izquierdo
 #                              - Ver especificacion de coordenadas mas abajo.
-#                COLORS posibles: uno o varios COLORS separados por espacios, con que uno coincida se considera que hay coincidencia. Cada uno puede ser:
+#                colores posibles: uno o varios colores separados por espacios, con que uno coincida se considera que hay coincidencia. Cada uno puede ser:
 #                    - un color específico (white, yellow, red, orange, blue, green)
 #                    - "->nombre" asigna el color de la celda a una variable llamada "nombre"
 #                    - "=>nombre" asigna el color de la celda a una variable global llamada "nombre"
@@ -134,7 +134,7 @@ metodosHard = {
         "important": False
     },
     "STD Nucleos Elegir color Up y color Right": {
-        "comment": "determinar los COLORS de la cara superior y derecha de la que quiero armar",
+        "comment": "determinar los colores de la cara superior y derecha de la que quiero armar",
         "modo": "Once",
         "minLado": 4,
         "subMetodos": [],

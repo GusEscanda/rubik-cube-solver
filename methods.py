@@ -3,9 +3,8 @@ import copy
 from pathlib import Path
 import json
 
-import cube as cb
 from util import stripWords, firstAndRest, rangeRC, Vars
-from cube import UP, DOWN, RIGHT, LEFT, NULL, DIRS, COLORS
+from cube import Dir
 
 
 def celdaEquiv(cubo, cara, fila, columna, posicionCubo):
@@ -16,14 +15,14 @@ def celdaEquiv(cubo, cara, fila, columna, posicionCubo):
         multip = (1 if '2' not in movim else 2)
         prima = ("'" in movim)
         movim = movim[0]
-        dd, horario = NULL, False
+        dd, horario = Dir.NULL, False
         if movim in 'YUD':  # asumo movimiento en sentido Y o U, luego ajusto si era D
             if cara in 'UD':  # para U o D, Y es un movimiento horario o antihorario
                 horario = (cara == 'U')
                 if movim != 'Y' and movim != cara:
                     multip = 0  # esa celda no se mueve
             else:  # cara in FBLR
-                dd = LEFT
+                dd = Dir.LEFT
                 if (movim == 'U' and fila > 0) or (movim == 'D' and fila < cubo.l - 1):
                     multip = 0  # esa celda no se mueve
         elif movim in 'XRL':  # asumo movimiento en sentido X o R, luego ajusto si era L
@@ -32,11 +31,11 @@ def celdaEquiv(cubo, cara, fila, columna, posicionCubo):
                 if movim != 'X' and movim != cara:
                     multip = 0  # esa celda no se mueve
             elif cara == 'B':
-                dd = DOWN
+                dd = Dir.DOWN
                 if (movim == 'R' and columna > 0) or (movim == 'L' and columna < cubo.l - 1):
                     multip = 0  # esa celda no se mueve
             else:  # cara in FUD
-                dd = UP
+                dd = Dir.UP
                 if (movim == 'L' and columna > 0) or (movim == 'R' and columna < cubo.l - 1):
                     multip = 0  # esa celda no se mueve
         elif movim in 'ZFB':  # asumo movimiento en sentido Z o F, luego ajusto si era B
@@ -45,19 +44,19 @@ def celdaEquiv(cubo, cara, fila, columna, posicionCubo):
                 if movim != 'Z' and movim != cara:
                     multip = 0  # esa celda no se mueve
             elif cara == 'U':
-                dd = RIGHT
+                dd = Dir.RIGHT
                 if (movim == 'B' and fila > 0) or (movim == 'F' and fila < cubo.l - 1):
                     multip = 0  # esa celda no se mueve
             elif cara == 'D':
-                dd = LEFT
+                dd = Dir.LEFT
                 if (movim == 'F' and fila > 0) or (movim == 'B' and fila < cubo.l - 1):
                     multip = 0  # esa celda no se mueve
             elif cara == 'L':
-                dd = UP
+                dd = Dir.UP
                 if (movim == 'B' and columna > 0) or (movim == 'F' and columna < cubo.l - 1):
                     multip = 0  # esa celda no se mueve
             else:  # cara == 'R':
-                dd = DOWN
+                dd = Dir.DOWN
                 if (movim == 'F' and columna > 0) or (movim == 'B' and columna < cubo.l - 1):
                     multip = 0  # esa celda no se mueve
         if movim in 'DLB':  # movimientos opuestos a XYZ y URF => invierto el sentido
@@ -68,7 +67,7 @@ def celdaEquiv(cubo, cara, fila, columna, posicionCubo):
             dd = (-dd[0], -dd[1])
         # ahora multip veces cambio de cara, fila y columna segun indiquen dd y horario
         for _ in range(multip):
-            if dd == NULL:  # solo girar, no cambia la cara
+            if dd == Dir.NULL:  # solo girar, no cambia la cara
                 if horario:
                     fila, columna = columna, cubo.l - fila - 1
                 else:
@@ -76,15 +75,15 @@ def celdaEquiv(cubo, cara, fila, columna, posicionCubo):
             else:
                 # pasar a la cara contigua (hacia dd) y calcular la nueva fila y columna
                 conn = cubo.conn[cara][dd]
-                if (dd in (UP, DOWN)) != (conn.dir in (UP, DOWN)):
+                if (dd in (Dir.UP, Dir.DOWN)) != (conn.dir in (Dir.UP, Dir.DOWN)):
                     fila, columna = columna, fila  # si cambio la direccion de vertical a horizontal o viceversa, intercambio filas con columnas
-                if conn.dir in (UP, DOWN):
+                if conn.dir in (Dir.UP, Dir.DOWN):
                     if (dd[0] + dd[1]) != (
                             conn.dir[0] + conn.dir[1]):  # si cambio el sentido, de ascendente a descendente o viceversa
                         fila = cubo.l - fila - 1
                     if conn.inv:  # si se invierte la otra coordenada
                         columna = cubo.l - columna - 1
-                else:  # conn.dir in (LEFT,RIGHT)
+                else:  # conn.dir in (Dir.LEFT,Dir.RIGHT)
                     if (dd[0] + dd[1]) != (
                             conn.dir[0] + conn.dir[1]):  # si cambio el sentido, de izquierda a derecha o viceversa
                         columna = cubo.l - columna - 1
@@ -96,7 +95,7 @@ def celdaEquiv(cubo, cara, fila, columna, posicionCubo):
 
 def matchCelda(vars, coloresPosibles, colorRel, colorCelda):
     # vars: objeto de tipo Vars, contiene los valores de las variables locales y globales definidas por el usuario
-    # coloresPosibles: uno o varios COLORS separados por espacios, con que uno coincida se considera que hay coincidencia. Cada uno puede ser:
+    # coloresPosibles: uno o varios colores separados por espacios, con que uno coincida se considera que hay coincidencia. Cada uno puede ser:
     #     - un color específico (white, yellow, red, orange, blue, green)
     #     - "->nombre" asigna el color de la celda a una variable llamada "nombre"
     #     - "==nombre" el color de la celda debe coincidir con el PREVIAMENTE ASIGNADO a la variable "nombre"
@@ -108,9 +107,9 @@ def matchCelda(vars, coloresPosibles, colorRel, colorCelda):
     #     - "a=nombre1[,nombre2]" idem anterior pero en sentido antihorario ("a"nticlockwise)
     #     - "o=nombre" el color de la celda debe coincidir con el correspondiente al opuesto (dentro de este cubo)
     #       al especificado en "nombre"
-    # colorRel: indica la relacion de COLORS que hay en este cubo (clockwise, anticlockwise, opuestos)
+    # colorRel: indica la relacion de colores que hay en este cubo (clockwise, anticlockwise, opuestos)
     # colorCelda: el color de la celda que quiero ver si matchea
-    mCelda = False  # match si alguno de los COLORS posibles matchea
+    mCelda = False  # match si alguno de los colores posibles matchea
     for color in stripWords(coloresPosibles):
         debeCoincidir = True
         if color[0:2] == '->':  # asigna a la variable el color de la celda actual
@@ -144,7 +143,7 @@ def matchCubo(cubo, vars, listaCeldas, posiciones=['-']):
     #    cara: 'FBUDLR'
     #    fila: fila
     #    columna: columna
-    #    coloresPosibles: uno o varios COLORS separados por espacios, con que uno coincida se considera que hay coincidencia. Cada uno puede ser:
+    #    coloresPosibles: uno o varios colores separados por espacios, con que uno coincida se considera que hay coincidencia. Cada uno puede ser:
     #        - un color específico (white, yellow, red, orange, blue, green)
     #        - "->nombre" asigna el color de la celda a una variable llamada "nombre"
     #        - "==nombre" el color de la celda debe coincidir con el PREVIAMENTE ASIGNADO a la variable "nombre"
@@ -160,7 +159,7 @@ def matchCubo(cubo, vars, listaCeldas, posiciones=['-']):
     for posicion in posiciones:
         if posicion == '-':
             posicion = ''
-        vars.clear('l')  # reseteo los COLORS variables locales para esta posicion
+        vars.clear('l')  # reseteo los colores variables locales para esta posicion
         match, cantMatches = True, 0
         for lc in listaCeldas:
             if type(lc) is tuple:
@@ -348,15 +347,15 @@ def cond2ListaCeldas(cubo, vars, listaCond):  # devuelve listaCeldas
     # listaCond es una lista de strings tipo 'cond' que puede tener sublistas con strings tipo cond
     #   las condiciones que se encuentran en la lista principal se evaluan como 'and', las condiciones que
     #   se encuentren en las sublistas se evaluan como 'or' (solo se permiten dos levels, lista y sublista)
-    # - cond es un string de la forma <cara>.<rango filas>.<rango columnas>.COLORS
+    # - cond es un string de la forma <cara>.<rango filas>.<rango columnas>.colores
     #     cara: id de la cara
     #     rangos de fila y columna: especificados con la sintaxis de str2movim
-    #     COLORS: uno o varios COLORS segun especificacion de matchCubo (aqui no se procesan, solo se copian a la lista a devolver)
+    #     colores: uno o varios colores segun especificacion de matchCubo (aqui no se procesan, solo se copian a la lista a devolver)
     # - listaCeldas es una lista donde cada elemento es una celda individual representada por una tupla de la forma:
     #    cara: 'FBUDLR'
     #    fila: fila (convertida al rango 0 ... self.l-1)
     #    columna: columna (convertida al rango 0 ... self.l-1)
-    #    coloresPosibles: uno o varios COLORS separados por espacios, con que uno coincida se considera que hay coincidencia. Cada uno puede ser:
+    #    coloresPosibles: uno o varios colores separados por espacios, con que uno coincida se considera que hay coincidencia. Cada uno puede ser:
     #        - un color específico (white, yellow, red, orange, blue, green)
     #        - "->nombre" asigna el color de la celda a una variable llamada "nombre"
     #        - "==nombre" el color de la celda debe coincidir con el PREVIAMENTE ASIGNADO a la variable "nombre"
