@@ -23,7 +23,7 @@ def celdaEquiv(cubo, cara, fila, columna, posicionCubo):
                     multip = 0  # esa celda no se mueve
             else:  # cara in FBLR
                 dd = Dir.LEFT
-                if (movim == 'U' and fila > 0) or (movim == 'D' and fila < cubo.l - 1):
+                if (movim == 'U' and fila > 0) or (movim == 'D' and fila < cubo.n - 1):
                     multip = 0  # esa celda no se mueve
         elif movim in 'XRL':  # asumo movimiento en sentido X o R, luego ajusto si era L
             if cara in 'RL':  # para R o L, X es un movimiento horario o antihorario
@@ -32,11 +32,11 @@ def celdaEquiv(cubo, cara, fila, columna, posicionCubo):
                     multip = 0  # esa celda no se mueve
             elif cara == 'B':
                 dd = Dir.DOWN
-                if (movim == 'R' and columna > 0) or (movim == 'L' and columna < cubo.l - 1):
+                if (movim == 'R' and columna > 0) or (movim == 'L' and columna < cubo.n - 1):
                     multip = 0  # esa celda no se mueve
             else:  # cara in FUD
                 dd = Dir.UP
-                if (movim == 'L' and columna > 0) or (movim == 'R' and columna < cubo.l - 1):
+                if (movim == 'L' and columna > 0) or (movim == 'R' and columna < cubo.n - 1):
                     multip = 0  # esa celda no se mueve
         elif movim in 'ZFB':  # asumo movimiento en sentido Z o F, luego ajusto si era B
             if cara in 'FB':  # para F o B, Z es un movimiento horario o antihorario
@@ -45,19 +45,19 @@ def celdaEquiv(cubo, cara, fila, columna, posicionCubo):
                     multip = 0  # esa celda no se mueve
             elif cara == 'U':
                 dd = Dir.RIGHT
-                if (movim == 'B' and fila > 0) or (movim == 'F' and fila < cubo.l - 1):
+                if (movim == 'B' and fila > 0) or (movim == 'F' and fila < cubo.n - 1):
                     multip = 0  # esa celda no se mueve
             elif cara == 'D':
                 dd = Dir.LEFT
-                if (movim == 'F' and fila > 0) or (movim == 'B' and fila < cubo.l - 1):
+                if (movim == 'F' and fila > 0) or (movim == 'B' and fila < cubo.n - 1):
                     multip = 0  # esa celda no se mueve
             elif cara == 'L':
                 dd = Dir.UP
-                if (movim == 'B' and columna > 0) or (movim == 'F' and columna < cubo.l - 1):
+                if (movim == 'B' and columna > 0) or (movim == 'F' and columna < cubo.n - 1):
                     multip = 0  # esa celda no se mueve
             else:  # cara == 'R':
                 dd = Dir.DOWN
-                if (movim == 'F' and columna > 0) or (movim == 'B' and columna < cubo.l - 1):
+                if (movim == 'F' and columna > 0) or (movim == 'B' and columna < cubo.n - 1):
                     multip = 0  # esa celda no se mueve
         if movim in 'DLB':  # movimientos opuestos a XYZ y URF => invierto el sentido
             horario = not horario
@@ -69,27 +69,27 @@ def celdaEquiv(cubo, cara, fila, columna, posicionCubo):
         for _ in range(multip):
             if dd == Dir.NULL:  # solo girar, no cambia la cara
                 if horario:
-                    fila, columna = columna, cubo.l - fila - 1
+                    fila, columna = columna, cubo.n - fila - 1
                 else:
-                    fila, columna = cubo.l - columna - 1, fila
+                    fila, columna = cubo.n - columna - 1, fila
             else:
                 # pasar a la cara contigua (hacia dd) y calcular la nueva fila y columna
                 conn = cubo.conn[cara][dd]
-                if (dd in (Dir.UP, Dir.DOWN)) != (conn.dir in (Dir.UP, Dir.DOWN)):
+                if (dd in (Dir.UP, Dir.DOWN)) != (conn.direct in (Dir.UP, Dir.DOWN)):
                     fila, columna = columna, fila  # si cambio la direccion de vertical a horizontal o viceversa, intercambio filas con columnas
-                if conn.dir in (Dir.UP, Dir.DOWN):
+                if conn.direct in (Dir.UP, Dir.DOWN):
                     if (dd[0] + dd[1]) != (
-                            conn.dir[0] + conn.dir[1]):  # si cambio el sentido, de ascendente a descendente o viceversa
-                        fila = cubo.l - fila - 1
-                    if conn.inv:  # si se invierte la otra coordenada
-                        columna = cubo.l - columna - 1
-                else:  # conn.dir in (Dir.LEFT,Dir.RIGHT)
+                            conn.direct[0] + conn.direct[1]):  # si cambio el sentido, de ascendente a descendente o viceversa
+                        fila = cubo.n - fila - 1
+                    if conn.invert:  # si se invierte la otra coordenada
+                        columna = cubo.n - columna - 1
+                else:  # conn.direct in (Dir.LEFT,Dir.RIGHT)
                     if (dd[0] + dd[1]) != (
-                            conn.dir[0] + conn.dir[1]):  # si cambio el sentido, de izquierda a derecha o viceversa
-                        columna = cubo.l - columna - 1
-                    if conn.inv:  # si se invierte la otra coordenada
-                        fila = cubo.l - fila - 1
-                cara, dd = conn.cara, conn.dir
+                            conn.direct[0] + conn.direct[1]):  # si cambio el sentido, de izquierda a derecha o viceversa
+                        columna = cubo.n - columna - 1
+                    if conn.invert:  # si se invierte la otra coordenada
+                        fila = cubo.n - fila - 1
+                cara, dd = conn.cara, conn.direct
     return (cara, fila, columna)
 
 
@@ -229,11 +229,11 @@ def ejecutarMetodo(cubo, met, solucion, level=0):
     #     mirror: buscar o no la posicion en espejo para las condiciones
     #     posiciones: lista de posiciones del cubo en que se buscan las condiciones
     #     algoritmo: string
-    if cubo.l < met.minLado:
+    if cubo.n < met.minLado:
         solucion.append(Sol(level, 'Met', met.id, False, met, False, cubo.vars))
         return (False, True)
-    # la opcion 'repeat' es en realidad 6(l^2) veces, para no entrar en un loop infinito si hay un error en el metodo
-    cantVeces = 6 * (cubo.l ** 2) if met.modo.upper() == 'REPEAT' else 0
+    # la opcion 'repeat' es en realidad 6(n^2) veces, para no entrar en un loop infinito si hay un error en el metodo
+    cantVeces = 6 * (cubo.n ** 2) if met.modo.upper() == 'REPEAT' else 0
     cantVeces = 1 if met.modo.upper() in 'ONCE / BEST MATCH' else cantVeces
     cantVeces = 2 if met.modo.upper() == 'TWICE' else cantVeces
     if 'TIMES' in met.modo.upper():
@@ -353,8 +353,8 @@ def cond2ListaCeldas(cubo, vars, listaCond):  # devuelve listaCeldas
     #     colores: uno o varios colores segun especificacion de matchCubo (aqui no se procesan, solo se copian a la lista a devolver)
     # - listaCeldas es una lista donde cada elemento es una celda individual representada por una tupla de la forma:
     #    cara: Face.FACES
-    #    fila: fila (convertida al rango 0 ... self.l-1)
-    #    columna: columna (convertida al rango 0 ... self.l-1)
+    #    fila: fila (convertida al rango 0 ... self.n-1)
+    #    columna: columna (convertida al rango 0 ... self.n-1)
     #    coloresPosibles: uno o varios colores separados por espacios, con que uno coincida se considera que hay coincidencia. Cada uno puede ser:
     #        - un color específico (white, yellow, red, orange, blue, green)
     #        - "->nombre" asigna el color de la celda a una variable llamada "nombre"
@@ -390,7 +390,7 @@ def mirrorCelda(cubo, celda):
         cara = 'L'
     elif cara == 'L':
         cara = 'R'
-    columna = cubo.l - 1 - columna
+    columna = cubo.n - 1 - columna
     return cara, fila, columna, color
 
 

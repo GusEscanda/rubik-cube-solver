@@ -50,7 +50,7 @@ class CubeVtk(Cube):
         self.FC2xyz = {}  # coeficientes para transformar [f,c] en [x,y,z]. [x,y,z] = [f,c,1] . FC2xyz
         self.angulo = {}  # angulos que hay que rotar la celda (en x, y, z) segun su orientacion
         self.FCCube = {}  # ajuste de coordenadas para los cubitos
-        lim = self.l / 2
+        lim = self.n / 2
         dsp = lim - 0.5
         self.FC2xyz["F"] = np.array([[0, -1, 0],  # fila
                                      [1, 0, 0],  # columna
@@ -111,8 +111,8 @@ class CubeVtk(Cube):
         mappCube.SetInputConnection(cube.GetOutputPort())
         self.inicCoefUbicacion()
         for cara in Face.FACES:
-            for f in range(self.l):
-                for c in range(self.l):
+            for f in range(self.n):
+                for c in range(self.n):
                     self.c[cara][f, c].actor = vtkActor()
                     self.c[cara][f, c].actor.SetMapper(mappCuad)
                     self.c[cara][f, c].interior = vtkActor()
@@ -129,8 +129,8 @@ class CubeVtk(Cube):
 
     def refreshActores(
             self):  # refresca la posicion de las celdas para que coincidan con la cara,fila,columna donde estan ubicadas
-        mid = (self.l - 1) / 2
-        for cara, f, c in [(cara, f, c) for cara in Face.FACES for f in range(self.l) for c in range(self.l)]:
+        mid = (self.n - 1) / 2
+        for cara, f, c in [(cara, f, c) for cara in Face.FACES for f in range(self.n) for c in range(self.n)]:
             self.c[cara][f, c].actor.GetProperty().SetColor(vtkNamedColors().GetColor3d(self.c[cara][f, c].color))
             self.c[cara][f, c].actor.SetOrientation(self.angulo[cara])
             self.c[cara][f, c].actor.SetPosition(np.dot([f, c, 1], self.FC2xyz[cara]))
@@ -155,8 +155,8 @@ class CubeVtk(Cube):
         escInt = 0.98
         escala = np.cos(np.pi / 4) * (1 - self.gap)
         for cara in Face.FACES:
-            for f in range(self.l):
-                for c in range(self.l):
+            for f in range(self.n):
+                for c in range(self.n):
                     self.c[cara][f, c].actor.SetScale(escala, escala, escala)
                     self.c[cara][f, c].interior.SetScale(escInt, escInt, escInt)
                     self.c[cara][f, c].interior.GetProperty().SetColor(qColor2RGB(self.innerColor))
@@ -176,7 +176,7 @@ class CubeVtk(Cube):
         self.renderer.GetRenderWindow().Render()
 
     def cambioTamanio(self, newTamanio):
-        if self.l != newTamanio:
+        if self.n != newTamanio:
             super().__init__(newTamanio, self.white)
             self.renderer.RemoveAllViewProps()
             self.inicActores()
@@ -244,8 +244,8 @@ class MainWindow(Qt.QMainWindow):
                 if self.mostrarMovim:
                     self.jobs[0].listaActores = [
                         self.cuboAnim.c[cara][f, c].ass for (cara, f, c) in celdasMovidas]
-                    l = self.cuboAnim.l
-                    self.jobs[0].vector = np.dot([(l - 1) / 2, (l - 1) / 2, 1], self.cuboAnim.FC2xyz[caraAnticlockwise])
+                    n = self.cuboAnim.n
+                    self.jobs[0].vector = np.dot([(n - 1) / 2, (n - 1) / 2, 1], self.cuboAnim.FC2xyz[caraAnticlockwise])
                     self.jobs[0].rotar = 90  # si el giro es multiple los actores estan multip veces => siempre 90
                 else:
                     self.jobs.popleft()  # no hago endJob para no actualizar la pantalla en cada movimiento
@@ -1326,7 +1326,7 @@ class MainWindow(Qt.QMainWindow):
         if texto[0:6] != 'Met : ':
             return
         self.renderer.RemoveAllViewProps()
-        self.metodoEditCubo = CubeVtk(self.renderer, self.cubo.l, white=True)
+        self.metodoEditCubo = CubeVtk(self.renderer, self.cubo.n, white=True)
         self.metodoEditCubo.setStyle(self.separacion.value() / 100,
                                      self.innerColor,
                                      self.backgroundColor,
@@ -1352,32 +1352,32 @@ class MainWindow(Qt.QMainWindow):
     def changeEditModo(self, cambio):
         if not self.editModo.currentText():
             return
-        n, m, r = self.editTimes.value(), self.editModo.currentText(), 6 * (self.cubo.l ** 2)
+        t, m, r = self.editTimes.value(), self.editModo.currentText(), 6 * (self.cubo.n ** 2)
         if cambio == 'times':
-            if n == 0 and m not in 'Best Match/Repeat':
+            if t == 0 and m not in 'Best Match/Repeat':
                 self.editModo.setCurrentText('Best Match')
                 self.editTimes.setValue(0)
-            elif n == 1 and m != 'Once':
+            elif t == 1 and m != 'Once':
                 self.editModo.setCurrentText('Once')
                 self.editTimes.setValue(1)
-            elif n == 2 and m != 'Twice':
+            elif t == 2 and m != 'Twice':
                 self.editModo.setCurrentText('Twice')
                 self.editTimes.setValue(2)
-            elif n > 2 and n < r and m != 'times':
+            elif 2 < t < r and m != 'times':
                 self.editModo.setCurrentText('times')
-            elif n >= r and m != 'Repeat':
+            elif t >= r and m != 'Repeat':
                 self.editModo.setCurrentText('Repeat')
                 self.editTimes.setValue(0)
         else:  # cambio == 'modo'
             if m == 'times':
-                if n < 3 or n > r:
+                if t < 3 or t > r:
                     self.editTimes.setValue(4)
-            elif m in 'Best Match/Repeat' and n != 0:
+            elif m in 'Best Match/Repeat' and t != 0:
                 self.editTimes.setValue(0)
-            elif m in 'Once/Twice' and n != {'Once': 1, 'Twice': 2}[m]:
+            elif m in 'Once/Twice' and t != {'Once': 1, 'Twice': 2}[m]:
                 self.editTimes.setValue({'Once': 1, 'Twice': 2}[m])
         if m == 'times':
-            self.metodoEditando.setModo(str(n) + ' times')
+            self.metodoEditando.setModo(str(t) + ' times')
         else:
             self.metodoEditando.setModo(m)
         self.editArchivoModificado.setText('*' if self.metodos.modif else ' ')
@@ -1599,8 +1599,8 @@ class MainWindow(Qt.QMainWindow):
 
     def clearHints(self, cubo):
         for cara in 'UDFBLR':
-            for f in range(cubo.l):
-                for c in range(cubo.l):
+            for f in range(cubo.n):
+                for c in range(cubo.n):
                     for (_, act) in cubo.c[cara][f, c].otros:
                         cubo.c[cara][f, c].ass.RemovePart(act)
                     cubo.c[cara][f, c].otros = []
@@ -1820,32 +1820,32 @@ class MainWindow(Qt.QMainWindow):
         self.movimientos.setText("")
 
     class Preset:
-        def __init__(self, c=None, l=None, conn=None, colorRel=None):
+        def __init__(self, c=None, n=None, conn=None, colorRel=None):
             self.c = c
-            self.l = l
+            self.n = n
             self.conn = conn
             self.colorRel = colorRel
 
     def saveCubo(self):
         # guardo solo algunos campos pues los objetos de vtk no son "deep copiables"
-        cub = Cube(self.cubo.l)
+        cub = Cube(self.cubo.n)
         for cara in cub.c:
-            for fila in range(cub.l):
-                for columna in range(cub.l):
+            for fila in range(cub.n):
+                for columna in range(cub.n):
                     cub.c[cara][fila, columna].id = self.cubo.c[cara][fila, columna].id
                     cub.c[cara][fila, columna].color = self.cubo.c[cara][fila, columna].color
-        preset = self.Preset(cub.c, self.cubo.l, copy.deepcopy(self.cubo.conn), copy.deepcopy(self.cubo.colorRel))
+        preset = self.Preset(cub.c, self.cubo.n, copy.deepcopy(self.cubo.conn), copy.deepcopy(self.cubo.colorRel))
         return preset
 
     def loadCuboFrom(self, preset):
-        if self.tamanio.value() != preset.l:
-            self.tamanio.setValue(self.cubo.l)
+        if self.tamanio.value() != preset.n:
+            self.tamanio.setValue(self.cubo.n)
         for cara in preset.c:
-            for fila in range(preset.l):
-                for columna in range(preset.l):
+            for fila in range(preset.n):
+                for columna in range(preset.n):
                     self.cubo.c[cara][fila, columna].id = preset.c[cara][fila, columna].id
                     self.cubo.c[cara][fila, columna].color = preset.c[cara][fila, columna].color
-        self.cubo.l = preset.l
+        self.cubo.n = preset.n
         self.cubo.conn = copy.deepcopy(preset.conn)
         self.cubo.colorRel = copy.deepcopy(preset.colorRel)
         self.renderer.RemoveAllViewProps()
@@ -1856,7 +1856,7 @@ class MainWindow(Qt.QMainWindow):
         p = self.preset.currentText()[0]
         self.presets[p] = self.saveCubo()
         self.presetIter += 1
-        p = '{item}: {n}x{n} ({iter})'.format(item=p, n=self.cubo.l, iter=self.presetIter)
+        p = f'{p}: {self.cubo.n}x{self.cubo.n} ({self.presetIter})'
         self.preset.setItemText(self.preset.currentIndex(), p)
 
     @pyqtSlot()

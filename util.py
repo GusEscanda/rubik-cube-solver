@@ -46,9 +46,9 @@ class Vars:
                 return default
             return self.dicts[level][var]
         else:
-            for n in self.levels:
-                if var in self.dicts[n]:
-                    return self.dicts[n][var]
+            for level in self.levels:
+                if var in self.dicts[level]:
+                    return self.dicts[level][var]
         return default
 
     def clear(self, level=None, var=None):
