@@ -44,6 +44,12 @@ COLORS = {
 }
 
 
+class Tile:
+    def __init__(self):
+        self.id = ''
+        self.color = ''
+
+
 class ColorRel:
     def __init__(self, cube):
         """
@@ -152,58 +158,69 @@ class Cube:
         self.vars.set('j', 0)
         self.vars.set('k', 0)
 
-        # crear las 6 caras
-        self.faces = {}  # Caras: diccionario de matrices de n x n cada celda es una clase generica que se
-        #        inicializa en inicCeldas con la info que se necesite (color, etc)
-        self.faces[Face.FRONT] = np.array([[Clase() for c in range(self.n)] for r in range(self.n)])  # Front
-        self.faces[Face.BACK] = np.array([[Clase() for c in range(self.n)] for r in range(self.n)])  # Back
-        self.faces[Face.UP] = np.array([[Clase() for c in range(self.n)] for r in range(self.n)])  # Up
-        self.faces[Face.DOWN] = np.array([[Clase() for c in range(self.n)] for r in range(self.n)])  # Down
-        self.faces[Face.LEFT] = np.array([[Clase() for c in range(self.n)] for r in range(self.n)])  # Left
-        self.faces[Face.RIGHT] = np.array([[Clase() for c in range(self.n)] for r in range(self.n)])  # Right
-
-        # llenar las celdas (para otro tipo de cube, con info distina en las celdas, escribir otro metodo de llenado)
-        self.inicCeldas()
+        # create the faces dict, each face is an array of tiles
+        self.faces = {
+            Face.FRONT: np.array([[Tile() for _ in range(self.n)] for _ in range(self.n)]),
+            Face.BACK: np.array([[Tile() for _ in range(self.n)] for _ in range(self.n)]),
+            Face.UP: np.array([[Tile() for _ in range(self.n)] for _ in range(self.n)]),
+            Face.DOWN: np.array([[Tile() for _ in range(self.n)] for _ in range(self.n)]),
+            Face.LEFT: np.array([[Tile() for _ in range(self.n)] for _ in range(self.n)]),
+            Face.RIGHT: np.array([[Tile() for _ in range(self.n)] for _ in range(self.n)])
+        }
+        self.initTiles()
 
         # conexiones entre las caras (que cara conecta con cual en cada uno de sus lados y si las coordenadas se invierten al pasar a la cara contigua
-        self.conn = {'F': {}, 'B': {}, 'U': {}, 'D': {}, 'L': {}, 'R': {}}
-        # conectar la face frontal con las adyacentes
-        self.conn['F'][Dir.UP] = self.Connection(face='U', direct=Dir.UP, invert=False)
-        self.conn['F'][Dir.DOWN] = self.Connection(face='D', direct=Dir.DOWN, invert=False)
-        self.conn['F'][Dir.LEFT] = self.Connection(face='L', direct=Dir.LEFT, invert=False)
-        self.conn['F'][Dir.RIGHT] = self.Connection(face='R', direct=Dir.RIGHT, invert=False)
-        # conectar la face de arriba con las adyacentes
-        self.conn['U'][Dir.UP] = self.Connection(face='B', direct=Dir.DOWN, invert=True)
-        self.conn['U'][Dir.DOWN] = self.Connection(face='F', direct=Dir.DOWN, invert=False)
-        self.conn['U'][Dir.LEFT] = self.Connection(face='L', direct=Dir.DOWN, invert=False)
-        self.conn['U'][Dir.RIGHT] = self.Connection(face='R', direct=Dir.DOWN, invert=True)
-        # conectar la face de abajo con las adyacentes
-        self.conn['D'][Dir.UP] = self.Connection(face='F', direct=Dir.UP, invert=False)
-        self.conn['D'][Dir.DOWN] = self.Connection(face='B', direct=Dir.UP, invert=True)
-        self.conn['D'][Dir.LEFT] = self.Connection(face='L', direct=Dir.UP, invert=True)
-        self.conn['D'][Dir.RIGHT] = self.Connection(face='R', direct=Dir.UP, invert=False)
-        # conectar la face de atras con las adyacentes
-        self.conn['B'][Dir.UP] = self.Connection(face='U', direct=Dir.DOWN, invert=True)
-        self.conn['B'][Dir.DOWN] = self.Connection(face='D', direct=Dir.UP, invert=True)
-        self.conn['B'][Dir.LEFT] = self.Connection(face='R', direct=Dir.LEFT, invert=False)
-        self.conn['B'][Dir.RIGHT] = self.Connection(face='L', direct=Dir.RIGHT, invert=False)
-        # conectar la face izquierda con las adyacentes
-        self.conn['L'][Dir.UP] = self.Connection(face='U', direct=Dir.RIGHT, invert=False)
-        self.conn['L'][Dir.DOWN] = self.Connection(face='D', direct=Dir.RIGHT, invert=True)
-        self.conn['L'][Dir.LEFT] = self.Connection(face='B', direct=Dir.LEFT, invert=False)
-        self.conn['L'][Dir.RIGHT] = self.Connection(face='F', direct=Dir.RIGHT, invert=False)
-        # conectar la face derecha con las adyacentes
-        self.conn['R'][Dir.UP] = self.Connection(face='U', direct=Dir.LEFT, invert=True)
-        self.conn['R'][Dir.DOWN] = self.Connection(face='D', direct=Dir.LEFT, invert=False)
-        self.conn['R'][Dir.LEFT] = self.Connection(face='F', direct=Dir.LEFT, invert=False)
-        self.conn['R'][Dir.RIGHT] = self.Connection(face='B', direct=Dir.RIGHT, invert=False)
+        self.conn = {
+            # conectar la face frontal con las adyacentes
+            Face.FRONT: {
+                Dir.UP: self.Connection(face=Face.UP, direct=Dir.UP, invert=False),
+                Dir.DOWN: self.Connection(face=Face.DOWN, direct=Dir.DOWN, invert=False),
+                Dir.LEFT: self.Connection(face=Face.LEFT, direct=Dir.LEFT, invert=False),
+                Dir.RIGHT: self.Connection(face=Face.RIGHT, direct=Dir.RIGHT, invert=False),
+            },
+            # conectar la face de arriba con las adyacentes
+            Face.UP: {
+                Dir.UP: self.Connection(face=Face.BACK, direct=Dir.DOWN, invert=True),
+                Dir.DOWN: self.Connection(face=Face.FRONT, direct=Dir.DOWN, invert=False),
+                Dir.LEFT: self.Connection(face=Face.LEFT, direct=Dir.DOWN, invert=False),
+                Dir.RIGHT: self.Connection(face=Face.RIGHT, direct=Dir.DOWN, invert=True),
+            },
+            # conectar la face de abajo con las adyacentes
+            Face.DOWN: {
+                Dir.UP: self.Connection(face=Face.FRONT, direct=Dir.UP, invert=False),
+                Dir.DOWN: self.Connection(face=Face.BACK, direct=Dir.UP, invert=True),
+                Dir.LEFT: self.Connection(face=Face.LEFT, direct=Dir.UP, invert=True),
+                Dir.RIGHT: self.Connection(face=Face.RIGHT, direct=Dir.UP, invert=False),
+            },
+            # conectar la face de atras con las adyacentes
+            Face.BACK: {
+                Dir.UP: self.Connection(face=Face.UP, direct=Dir.DOWN, invert=True),
+                Dir.DOWN: self.Connection(face=Face.DOWN, direct=Dir.UP, invert=True),
+                Dir.LEFT: self.Connection(face=Face.RIGHT, direct=Dir.LEFT, invert=False),
+                Dir.RIGHT: self.Connection(face=Face.LEFT, direct=Dir.RIGHT, invert=False),
+            },
+            # conectar la face izquierda con las adyacentes
+            Face.LEFT: {
+                Dir.UP: self.Connection(face=Face.UP, direct=Dir.RIGHT, invert=False),
+                Dir.DOWN: self.Connection(face=Face.DOWN, direct=Dir.RIGHT, invert=True),
+                Dir.LEFT: self.Connection(face=Face.BACK, direct=Dir.LEFT, invert=False),
+                Dir.RIGHT: self.Connection(face=Face.FRONT, direct=Dir.RIGHT, invert=False),
+            },
+            # conectar la face derecha con las adyacentes
+            Face.RIGHT: {
+                Dir.UP: self.Connection(face=Face.UP, direct=Dir.LEFT, invert=True),
+                Dir.DOWN: self.Connection(face=Face.DOWN, direct=Dir.LEFT, invert=False),
+                Dir.LEFT: self.Connection(face=Face.FRONT, direct=Dir.LEFT, invert=False),
+                Dir.RIGHT: self.Connection(face=Face.BACK, direct=Dir.RIGHT, invert=False),
+            },
+        }
 
         if not self.white:
             self.colorRel = ColorRel(self)
         return
 
-    def inicCeldas(self):
-        for face in Face.FACES:
+    def initTiles(self):
+        for face in self.faces:
             for r in range(self.n):
                 for c in range(self.n):
                     self.faces[face][r, c].color = COLORS[face] if not self.white else 'white'
@@ -304,17 +321,17 @@ class Cube:
 
             face, direc = '', ''
             if idCara in "FfSsZz":
-                face, direc = 'R', Dir.DOWN
+                face, direc = Face.RIGHT, Dir.DOWN
             elif idCara in "Bb":
-                face, direc = 'L', Dir.DOWN
+                face, direc = Face.LEFT, Dir.DOWN
             elif idCara in "LlMm":
-                face, direc = 'F', Dir.DOWN
+                face, direc = Face.FRONT, Dir.DOWN
             elif idCara in "RrXx":
-                face, direc = 'B', Dir.DOWN
+                face, direc = Face.BACK, Dir.DOWN
             elif idCara in "UuYy":
-                face, direc = 'F', Dir.LEFT
+                face, direc = Face.FRONT, Dir.LEFT
             elif idCara in "DdEe":
-                face, direc = 'F', Dir.RIGHT
+                face, direc = Face.FRONT, Dir.RIGHT
                 rango = (self.n - 1 - rango[1],
                          self.n - 1 - rango[0])  # solo en el caso de mirar desde abajo, invierto la seleccion del rango
             idCara = face
@@ -322,10 +339,10 @@ class Cube:
                 direc = (-direc[0], -direc[1])
 
         if espejo:
-            if idCara == 'R':
-                idCara = 'L'
-            elif idCara == 'L':
-                idCara = 'R'
+            if idCara == Face.RIGHT:
+                idCara = Face.LEFT
+            elif idCara == Face.LEFT:
+                idCara = Face.RIGHT
             if direc == Dir.UP or direc == Dir.DOWN:
                 rango = (self.n - 1 - rango[1], self.n - 1 - rango[0])
             elif direc == Dir.LEFT or direc == Dir.RIGHT:

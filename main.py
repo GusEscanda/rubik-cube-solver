@@ -1875,7 +1875,7 @@ class MainWindow(Qt.QMainWindow):
     @pyqtSlot()
     def clickBotonReset(self):
         self.anim.endAllJobs()
-        self.cubo.inicCeldas()
+        self.cubo.initTiles()
         self.cubo.refreshActores()
 
     @pyqtSlot()
