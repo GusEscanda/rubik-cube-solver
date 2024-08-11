@@ -11,7 +11,16 @@ class Dir:
     RIGHT = (0, 1)
     LEFT = (0, -1)
     NULL = (0, 0)
-    DICT = {'u': UP, 'd': DOWN, 'r': RIGHT, 'l': LEFT, '0': NULL}
+    _OFFSETS = {'u': UP, 'd': DOWN, 'r': RIGHT, 'l': LEFT, '0': NULL}
+    _DIRECTION = {v: k for k, v in _OFFSETS.items()}
+
+    @staticmethod
+    def offset(direction):
+        return Dir._OFFSETS[direction.lower()]
+
+    @staticmethod
+    def dir(offset):
+        return Dir._DIRECTION[offset]
 
 
 # Faces of the cube
@@ -126,9 +135,9 @@ class Cube:
 
     def __init__(self, size=3, white=False):
 
-        self.n = size  # cada cara tendra n x n celdas
-        self.white = white  # True si es un cube con todas las caras blancas (util para la carga de la base de datos de metodos de armado)
-        self.vars = Vars('c')  # Variables para conversion de coordenadas
+        self.n = size  # each face will have n*n tiles
+        self.white = white  # True if it's a cube with all white tiles (useful when you're building the solving methods database)
+        self.vars = Vars('c')  # Variables to convert logic coordinates to numeric ones
         self.vars.set('T', 1)
         self.vars.set('t', 2)
         self.vars.set('L', 1)
@@ -264,7 +273,7 @@ class Cube:
                 multip, mm = int(mm[:1]), mm[1:]
             mm = mm[:1]
             if mm in 'udlrUDLR':
-                direc = Dir.DICT[mm.lower()]
+                direc = Dir.offset(mm)
                 mm = ''  # ya no debo procesar mas a mm, tengo todos los datos para devolver
             else:  # mm in 'caCA' (clockwise o anticlockwise) => simulo un movimiento tipo "Rubik estandar"
                 mm = idCara + str(multip) + ("'" if mm in 'aA' else "")
@@ -450,15 +459,14 @@ class Cube:
         moves = []
         if qty <= 0:
             qty = self.n * 20
-        dirs = list(set(Dir.DICT.keys()) - {'0'})
         for _ in range(qty):
-            face = np.random.choice(['F', 'B', 'U', 'D', 'L', 'R'])
+            face = np.random.choice(list(Face.FACES))
             rrr = (np.random.randint(self.n), np.random.randint(self.n))
             rrr = (min(rrr), max(rrr))
-            direction = np.random.choice(dirs)
+            direction = [Dir.UP, Dir.DOWN, Dir.LEFT, Dir.RIGHT][np.random.randint(4)]
             multi = np.random.randint(1, 4)
             moves.append(f'{face}.{str(rrr[0] + 1)}:{str(rrr[1] + 1)}.{str(multi)}{direction}')
-            self.unMovimiento(face, rrr, Dir.DICT[direction], multi)
+            self.unMovimiento(face, rrr, direction, multi)
         return ' '.join(moves)
 
 
