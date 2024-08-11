@@ -144,7 +144,7 @@ class Cube:
         self.vars.set('k', 0)
 
         # crear las 6 caras
-        self.c = {}  # Caras: diccionario de matrices de lxl cada celda es una clase generica que se
+        self.c = {}  # Caras: diccionario de matrices de n x n cada celda es una clase generica que se
         #        inicializa en inicCeldas con la info que se necesite (color, etc)
         self.c['F'] = np.array([[Clase() for c in range(self.n)] for r in range(self.n)])  # Front
         self.c['B'] = np.array([[Clase() for c in range(self.n)] for r in range(self.n)])  # Back
@@ -384,10 +384,10 @@ class Cube:
             rf, rc = 0, rinv
         ret = []
         while (0 <= f < self.n) and (0 <= c < self.n):
-            r = []
+            rr = []
             for xx in range(abs(rango[1] - rango[0]) + 1):
-                r.append(self.c[cara][f + xx * rf, c + xx * rc])
-            ret.append(r)
+                rr.append(self.c[cara][f + xx * rf, c + xx * rc])
+            ret.append(rr)
             if set:
                 for xx in range(abs(rango[1] - rango[0]) + 1):
                     self.c[cara][f + xx * rf, c + xx * rc] = celdas[len(ret) - 1, xx]
