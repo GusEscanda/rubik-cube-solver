@@ -37,14 +37,14 @@ class Gallery:
         self.src = []
         self.map = []
 
-        for f in range(self.shapeCycle):
+        for shape in range(self.shapeCycle):
             self.src.append(vtk.vtkPolyData())
-            self.src[f].SetPoints(self.points)
-            self.src[f].SetLines(self.lines[f].cellArray)
+            self.src[shape].SetPoints(self.points)
+            self.src[shape].SetLines(self.lines[shape].cellArray)
 
             self.map.append(vtk.vtkPolyDataMapper())
-            self.map[f].SetInputData(self.src[f])
-            self.map[f].Update()
+            self.map[shape].SetInputData(self.src[shape])
+            self.map[shape].Update()
 
         self.colors = [
             (1.0, 0.0, 1.0),

@@ -195,10 +195,10 @@ class Cube:
 
     def inicCeldas(self):
         for cara in Face.FACES:
-            for f in range(self.n):
+            for r in range(self.n):
                 for c in range(self.n):
-                    self.c[cara][f, c].color = COLORS[cara] if not self.white else 'white'
-                    self.c[cara][f, c].id = cara + ('000' + str(f + 1))[-3:] + ('000' + str(c + 1))[-3:]
+                    self.c[cara][r, c].color = COLORS[cara] if not self.white else 'white'
+                    self.c[cara][r, c].id = cara + ('000' + str(r + 1))[-3:] + ('000' + str(c + 1))[-3:]
 
     def str2coord(self, sCoord, checkRangoCero=True):
         c = eval(sCoord, self.vars.vars())
@@ -371,30 +371,30 @@ class Cube:
         if rango[0] > rango[1]:
             rinv = -1
         if direc == Dir.RIGHT:
-            f, c = rango[0], 0
-            rf, rc = rinv, 0
+            r, c = rango[0], 0
+            rr, rc = rinv, 0
         elif direc == Dir.LEFT:
-            f, c = rango[0], self.n - 1
-            rf, rc = rinv, 0
+            r, c = rango[0], self.n - 1
+            rr, rc = rinv, 0
         elif direc == Dir.DOWN:
-            f, c = 0, rango[0]
-            rf, rc = 0, rinv
+            r, c = 0, rango[0]
+            rr, rc = 0, rinv
         elif direc == Dir.UP:
-            f, c = self.n - 1, rango[0]
-            rf, rc = 0, rinv
+            r, c = self.n - 1, rango[0]
+            rr, rc = 0, rinv
         ret = []
-        while (0 <= f < self.n) and (0 <= c < self.n):
-            rr = []
+        while (0 <= r < self.n) and (0 <= c < self.n):
+            rrr = []
             for xx in range(abs(rango[1] - rango[0]) + 1):
-                rr.append(self.c[cara][f + xx * rf, c + xx * rc])
-            ret.append(rr)
+                rrr.append(self.c[cara][r + xx * rr, c + xx * rc])
+            ret.append(rrr)
             if set:
                 for xx in range(abs(rango[1] - rango[0]) + 1):
-                    self.c[cara][f + xx * rf, c + xx * rc] = celdas[len(ret) - 1, xx]
+                    self.c[cara][r + xx * rr, c + xx * rc] = celdas[len(ret) - 1, xx]
                 if type(celdasMovidas) == list:
                     for xx in range(abs(rango[1] - rango[0]) + 1):
-                        celdasMovidas.append((cara, f + xx * rf, c + xx * rc))
-            f, c = f + direc[0], c + direc[1]
+                        celdasMovidas.append((cara, r + xx * rr, c + xx * rc))
+            r, c = r + direc[0], c + direc[1]
         return np.array(ret)
 
     def unMovimiento(self, idCara, rango, direc, multip=1, celdasMovidas=False):
@@ -419,9 +419,9 @@ class Cube:
                     dirRotacion = 1 if direc == Dir.UP else 3  # 1 = antihorario, 3 = horario
                 self.c[cara] = np.rot90(self.c[cara], dirRotacion)
                 if type(celdasMovidas) == list:
-                    for f in range(self.n):
+                    for r in range(self.n):
                         for c in range(self.n):
-                            celdasMovidas.append((cara, f, c))
+                            celdasMovidas.append((cara, r, c))
             if max(rango) == self.n - 1:
                 if (direc == Dir.RIGHT) or (direc == Dir.LEFT):
                     cara = self.conn[idCara][Dir.DOWN].cara
@@ -431,9 +431,9 @@ class Cube:
                     dirRotacion = 1 if direc == Dir.DOWN else 3  # 1 = antihorario, 3 = horario
                 self.c[cara] = np.rot90(self.c[cara], dirRotacion)
                 if type(celdasMovidas) == list:
-                    for f in range(self.n):
+                    for r in range(self.n):
                         for c in range(self.n):
-                            celdasMovidas.append((cara, f, c))
+                            celdasMovidas.append((cara, r, c))
 
     def vecina(self, cara, coord, direc):
         '''Devuelve el contenido de la celda vecina en la cara vecina'''

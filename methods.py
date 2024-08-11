@@ -379,8 +379,8 @@ def cond2ListaCeldas(cubo, vars, listaCond):  # devuelve listaCeldas
             rangoFilas = cubo.str2rango(rangoFilas)
             rangoColumnas = cubo.str2rango(rangoColumnas)
 
-            for f, c in rangeRC(rangoFilas, rangoColumnas):
-                listaCeldas.append((cara, f, c, colores))
+            for r, c in rangeRC(rangoFilas, rangoColumnas):
+                listaCeldas.append((cara, r, c, colores))
     return listaCeldas
 
 

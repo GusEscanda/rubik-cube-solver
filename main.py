@@ -47,7 +47,7 @@ class CubeVtk(Cube):
         self.inicActores()
 
     def inicCoefUbicacion(self):
-        self.FC2xyz = {}  # coeficientes para transformar [f,c] en [x,y,z]. [x,y,z] = [f,c,1] . FC2xyz
+        self.FC2xyz = {}  # coeficientes para transformar [r,c] en [x,y,z]. [x,y,z] = [r,c,1] . FC2xyz
         self.angulo = {}  # angulos que hay que rotar la celda (en x, y, z) segun su orientacion
         self.FCCube = {}  # ajuste de coordenadas para los cubitos
         lim = self.n / 2
@@ -111,18 +111,18 @@ class CubeVtk(Cube):
         mappCube.SetInputConnection(cube.GetOutputPort())
         self.inicCoefUbicacion()
         for cara in Face.FACES:
-            for f in range(self.n):
+            for r in range(self.n):
                 for c in range(self.n):
-                    self.c[cara][f, c].actor = vtkActor()
-                    self.c[cara][f, c].actor.SetMapper(mappCuad)
-                    self.c[cara][f, c].interior = vtkActor()
-                    self.c[cara][f, c].interior.SetMapper(mappCube)
-                    self.c[cara][f, c].ass = vtk.vtkAssembly()
-                    self.c[cara][f, c].ass.AddPart(self.c[cara][f, c].actor)
-                    self.c[cara][f, c].ass.AddPart(self.c[cara][f, c].interior)
+                    self.c[cara][r, c].actor = vtkActor()
+                    self.c[cara][r, c].actor.SetMapper(mappCuad)
+                    self.c[cara][r, c].interior = vtkActor()
+                    self.c[cara][r, c].interior.SetMapper(mappCube)
+                    self.c[cara][r, c].ass = vtk.vtkAssembly()
+                    self.c[cara][r, c].ass.AddPart(self.c[cara][r, c].actor)
+                    self.c[cara][r, c].ass.AddPart(self.c[cara][r, c].interior)
                     self.c[cara][
-                        f, c].otros = []  # lista de otros actores que quiera que se muevan junto con esta celda
-                    self.renderer.AddActor(self.c[cara][f, c].ass)
+                        r, c].otros = []  # lista de otros actores que quiera que se muevan junto con esta celda
+                    self.renderer.AddActor(self.c[cara][r, c].ass)
 
         self.refreshStyleCeldas()
         self.refreshActores()
@@ -130,37 +130,37 @@ class CubeVtk(Cube):
     def refreshActores(
             self):  # refresca la posicion de las celdas para que coincidan con la cara,fila,columna donde estan ubicadas
         mid = (self.n - 1) / 2
-        for cara, f, c in [(cara, f, c) for cara in Face.FACES for f in range(self.n) for c in range(self.n)]:
-            self.c[cara][f, c].actor.GetProperty().SetColor(vtkNamedColors().GetColor3d(self.c[cara][f, c].color))
-            self.c[cara][f, c].actor.SetOrientation(self.angulo[cara])
-            self.c[cara][f, c].actor.SetPosition(np.dot([f, c, 1], self.FC2xyz[cara]))
-            self.c[cara][f, c].interior.SetPosition(
-                np.dot([f, c, 0], 0.98 * self.FC2xyz[cara]) + self.FCCube[cara])
-            for i in range(len(self.c[cara][f, c].otros) // 2):
-                (desp, act) = self.c[cara][f, c].otros[2 * i]  # symbol
+        for cara, r, c in [(cara, r, c) for cara in Face.FACES for r in range(self.n) for c in range(self.n)]:
+            self.c[cara][r, c].actor.GetProperty().SetColor(vtkNamedColors().GetColor3d(self.c[cara][r, c].color))
+            self.c[cara][r, c].actor.SetOrientation(self.angulo[cara])
+            self.c[cara][r, c].actor.SetPosition(np.dot([r, c, 1], self.FC2xyz[cara]))
+            self.c[cara][r, c].interior.SetPosition(
+                np.dot([r, c, 0], 0.98 * self.FC2xyz[cara]) + self.FCCube[cara])
+            for i in range(len(self.c[cara][r, c].otros) // 2):
+                (desp, act) = self.c[cara][r, c].otros[2 * i]  # symbol
                 act.SetOrientation(self.angulo[cara])
-                pos = np.dot([f, c, 1], self.FC2xyz[cara])  # posicion de esa celda
+                pos = np.dot([r, c, 1], self.FC2xyz[cara])  # posicion de esa celda
                 pos = pos + np.dot([mid, mid, 1], self.FC2xyz[cara]) * (i + 1) * desp  # + desplazamiento
                 act.SetPosition(pos)
-                (despT, act) = self.c[cara][f, c].otros[2 * i + 1]  # text
+                (despT, act) = self.c[cara][r, c].otros[2 * i + 1]  # text
                 act.SetOrientation(self.angulo[cara])
-                pos = np.dot([f, c, 1], self.FC2xyz[cara])  # posicion de esa celda
+                pos = np.dot([r, c, 1], self.FC2xyz[cara])  # posicion de esa celda
                 pos = pos + np.dot([mid, mid, 1], self.FC2xyz[cara]) * (
                         (i + 1) * desp + despT)  # + desplazamiento
                 act.SetPosition(pos)
-            self.c[cara][f, c].ass.SetOrientation(0, 0, 0)
+            self.c[cara][r, c].ass.SetOrientation(0, 0, 0)
         self.renderer.GetRenderWindow().Render()
 
     def refreshStyleCeldas(self):  # refresca el estilo del cubo (color del interior y gap de las "calcomanias")
         escInt = 0.98
         escala = np.cos(np.pi / 4) * (1 - self.gap)
         for cara in Face.FACES:
-            for f in range(self.n):
+            for r in range(self.n):
                 for c in range(self.n):
-                    self.c[cara][f, c].actor.SetScale(escala, escala, escala)
-                    self.c[cara][f, c].interior.SetScale(escInt, escInt, escInt)
-                    self.c[cara][f, c].interior.GetProperty().SetColor(qColor2RGB(self.innerColor))
-                    self.c[cara][f, c].interior.GetProperty().SetOpacity(self.innerColor.alphaF())
+                    self.c[cara][r, c].actor.SetScale(escala, escala, escala)
+                    self.c[cara][r, c].interior.SetScale(escInt, escInt, escInt)
+                    self.c[cara][r, c].interior.GetProperty().SetColor(qColor2RGB(self.innerColor))
+                    self.c[cara][r, c].interior.GetProperty().SetOpacity(self.innerColor.alphaF())
         self.renderer.GetRenderWindow().Render()
 
     def resetCamara(self):
@@ -243,7 +243,7 @@ class MainWindow(Qt.QMainWindow):
                 celdasMovidas, caraAnticlockwise = self.cuboAnim.mover(self.jobs[0].movim, self.mostrarMovim)
                 if self.mostrarMovim:
                     self.jobs[0].listaActores = [
-                        self.cuboAnim.c[cara][f, c].ass for (cara, f, c) in celdasMovidas]
+                        self.cuboAnim.c[cara][r, c].ass for (cara, r, c) in celdasMovidas]
                     n = self.cuboAnim.n
                     self.jobs[0].vector = np.dot([(n - 1) / 2, (n - 1) / 2, 1], self.cuboAnim.FC2xyz[caraAnticlockwise])
                     self.jobs[0].rotar = 90  # si el giro es multiple los actores estan multip veces => siempre 90
@@ -1599,11 +1599,11 @@ class MainWindow(Qt.QMainWindow):
 
     def clearHints(self, cubo):
         for cara in 'UDFBLR':
-            for f in range(cubo.n):
+            for r in range(cubo.n):
                 for c in range(cubo.n):
-                    for (_, act) in cubo.c[cara][f, c].otros:
-                        cubo.c[cara][f, c].ass.RemovePart(act)
-                    cubo.c[cara][f, c].otros = []
+                    for (_, act) in cubo.c[cara][r, c].otros:
+                        cubo.c[cara][r, c].ass.RemovePart(act)
+                    cubo.c[cara][r, c].otros = []
         cubo.renderer.GetRenderWindow().Render()
 
     @pyqtSlot()
