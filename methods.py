@@ -165,7 +165,7 @@ def matchCubo(cubo, vars, listaCeldas, posiciones=['-']):
             if type(lc) is tuple:
                 (face, fila, columna, coloresPosibles) = lc
                 face, fila, columna = celdaEquiv(cubo, face, fila, columna, posicion)
-                mCelda = matchCelda(vars, coloresPosibles, cubo.colorRel, cubo.f[face][fila, columna].color)
+                mCelda = matchCelda(vars, coloresPosibles, cubo.colorRel, cubo.faces[face][fila, columna].color)
                 if mCelda:
                     cantMatches = cantMatches + 1
                 match = match and mCelda
@@ -174,7 +174,7 @@ def matchCubo(cubo, vars, listaCeldas, posiciones=['-']):
                 for lcOr in lc:
                     (face, fila, columna, coloresPosibles) = lcOr
                     face, fila, columna = celdaEquiv(cubo, face, fila, columna, posicion)
-                    mCelda = matchCelda(vars, coloresPosibles, cubo.colorRel, cubo.f[face][fila, columna].color)
+                    mCelda = matchCelda(vars, coloresPosibles, cubo.colorRel, cubo.faces[face][fila, columna].color)
                     orMatch = orMatch or mCelda
                 if orMatch:
                     cantMatches = cantMatches + 1

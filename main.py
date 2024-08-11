@@ -113,16 +113,16 @@ class CubeVtk(Cube):
         for face in Face.FACES:
             for r in range(self.n):
                 for c in range(self.n):
-                    self.f[face][r, c].actor = vtkActor()
-                    self.f[face][r, c].actor.SetMapper(mappCuad)
-                    self.f[face][r, c].interior = vtkActor()
-                    self.f[face][r, c].interior.SetMapper(mappCube)
-                    self.f[face][r, c].ass = vtk.vtkAssembly()
-                    self.f[face][r, c].ass.AddPart(self.f[face][r, c].actor)
-                    self.f[face][r, c].ass.AddPart(self.f[face][r, c].interior)
-                    self.f[face][
+                    self.faces[face][r, c].actor = vtkActor()
+                    self.faces[face][r, c].actor.SetMapper(mappCuad)
+                    self.faces[face][r, c].interior = vtkActor()
+                    self.faces[face][r, c].interior.SetMapper(mappCube)
+                    self.faces[face][r, c].ass = vtk.vtkAssembly()
+                    self.faces[face][r, c].ass.AddPart(self.faces[face][r, c].actor)
+                    self.faces[face][r, c].ass.AddPart(self.faces[face][r, c].interior)
+                    self.faces[face][
                         r, c].otros = []  # lista de otros actores que quiera que se muevan junto con esta celda
-                    self.renderer.AddActor(self.f[face][r, c].ass)
+                    self.renderer.AddActor(self.faces[face][r, c].ass)
 
         self.refreshStyleCeldas()
         self.refreshActores()
@@ -131,24 +131,24 @@ class CubeVtk(Cube):
             self):  # refresca la posicion de las celdas para que coincidan con la cara,fila,columna donde estan ubicadas
         mid = (self.n - 1) / 2
         for face, r, c in [(face, r, c) for face in Face.FACES for r in range(self.n) for c in range(self.n)]:
-            self.f[face][r, c].actor.GetProperty().SetColor(vtkNamedColors().GetColor3d(self.f[face][r, c].color))
-            self.f[face][r, c].actor.SetOrientation(self.angulo[face])
-            self.f[face][r, c].actor.SetPosition(np.dot([r, c, 1], self.FC2xyz[face]))
-            self.f[face][r, c].interior.SetPosition(
+            self.faces[face][r, c].actor.GetProperty().SetColor(vtkNamedColors().GetColor3d(self.faces[face][r, c].color))
+            self.faces[face][r, c].actor.SetOrientation(self.angulo[face])
+            self.faces[face][r, c].actor.SetPosition(np.dot([r, c, 1], self.FC2xyz[face]))
+            self.faces[face][r, c].interior.SetPosition(
                 np.dot([r, c, 0], 0.98 * self.FC2xyz[face]) + self.FCCube[face])
-            for i in range(len(self.f[face][r, c].otros) // 2):
-                (desp, act) = self.f[face][r, c].otros[2 * i]  # symbol
+            for i in range(len(self.faces[face][r, c].otros) // 2):
+                (desp, act) = self.faces[face][r, c].otros[2 * i]  # symbol
                 act.SetOrientation(self.angulo[face])
                 pos = np.dot([r, c, 1], self.FC2xyz[face])  # posicion de esa celda
                 pos = pos + np.dot([mid, mid, 1], self.FC2xyz[face]) * (i + 1) * desp  # + desplazamiento
                 act.SetPosition(pos)
-                (despT, act) = self.f[face][r, c].otros[2 * i + 1]  # text
+                (despT, act) = self.faces[face][r, c].otros[2 * i + 1]  # text
                 act.SetOrientation(self.angulo[face])
                 pos = np.dot([r, c, 1], self.FC2xyz[face])  # posicion de esa celda
                 pos = pos + np.dot([mid, mid, 1], self.FC2xyz[face]) * (
                         (i + 1) * desp + despT)  # + desplazamiento
                 act.SetPosition(pos)
-            self.f[face][r, c].ass.SetOrientation(0, 0, 0)
+            self.faces[face][r, c].ass.SetOrientation(0, 0, 0)
         self.renderer.GetRenderWindow().Render()
 
     def refreshStyleCeldas(self):  # refresca el estilo del cubo (color del interior y gap de las "calcomanias")
@@ -157,10 +157,10 @@ class CubeVtk(Cube):
         for face in Face.FACES:
             for r in range(self.n):
                 for c in range(self.n):
-                    self.f[face][r, c].actor.SetScale(escala, escala, escala)
-                    self.f[face][r, c].interior.SetScale(escInt, escInt, escInt)
-                    self.f[face][r, c].interior.GetProperty().SetColor(qColor2RGB(self.innerColor))
-                    self.f[face][r, c].interior.GetProperty().SetOpacity(self.innerColor.alphaF())
+                    self.faces[face][r, c].actor.SetScale(escala, escala, escala)
+                    self.faces[face][r, c].interior.SetScale(escInt, escInt, escInt)
+                    self.faces[face][r, c].interior.GetProperty().SetColor(qColor2RGB(self.innerColor))
+                    self.faces[face][r, c].interior.GetProperty().SetOpacity(self.innerColor.alphaF())
         self.renderer.GetRenderWindow().Render()
 
     def resetCamara(self):
@@ -243,7 +243,7 @@ class MainWindow(Qt.QMainWindow):
                 celdasMovidas, caraAnticlockwise = self.cuboAnim.mover(self.jobs[0].movim, self.mostrarMovim)
                 if self.mostrarMovim:
                     self.jobs[0].listaActores = [
-                        self.cuboAnim.f[face][r, c].ass for (face, r, c) in celdasMovidas]
+                        self.cuboAnim.faces[face][r, c].ass for (face, r, c) in celdasMovidas]
                     n = self.cuboAnim.n
                     self.jobs[0].vector = np.dot([(n - 1) / 2, (n - 1) / 2, 1], self.cuboAnim.FC2xyz[caraAnticlockwise])
                     self.jobs[0].rotar = 90  # si el giro es multiple los actores estan multip veces => siempre 90
@@ -1591,19 +1591,19 @@ class MainWindow(Qt.QMainWindow):
                 act2 = self.gallery.actorT(addOn)
             else:
                 act2 = self.gallery.actor(addOn)
-            cubo.f[face][fila, columna].ass.AddPart(act1)
-            cubo.f[face][fila, columna].otros.append((0.1, act1))  # ( desplazamiento, actor )
-            cubo.f[face][fila, columna].ass.AddPart(act2)
-            cubo.f[face][fila, columna].otros.append((0.035, act2))  # ( desplazamiento, actor )
+            cubo.faces[face][fila, columna].ass.AddPart(act1)
+            cubo.faces[face][fila, columna].otros.append((0.1, act1))  # ( desplazamiento, actor )
+            cubo.faces[face][fila, columna].ass.AddPart(act2)
+            cubo.faces[face][fila, columna].otros.append((0.035, act2))  # ( desplazamiento, actor )
         cubo.refreshActores()
 
     def clearHints(self, cubo):
-        for face in 'UDFBLR':
+        for face in cubo.faces:
             for r in range(cubo.n):
                 for c in range(cubo.n):
-                    for (_, act) in cubo.f[face][r, c].otros:
-                        cubo.f[face][r, c].ass.RemovePart(act)
-                    cubo.f[face][r, c].otros = []
+                    for (_, act) in cubo.faces[face][r, c].otros:
+                        cubo.faces[face][r, c].ass.RemovePart(act)
+                    cubo.faces[face][r, c].otros = []
         cubo.renderer.GetRenderWindow().Render()
 
     @pyqtSlot()
@@ -1820,8 +1820,8 @@ class MainWindow(Qt.QMainWindow):
         self.movimientos.setText("")
 
     class Preset:
-        def __init__(self, f=None, n=None, conn=None, colorRel=None):
-            self.f = f
+        def __init__(self, faces=None, n=None, conn=None, colorRel=None):
+            self.faces = faces
             self.n = n
             self.conn = conn
             self.colorRel = colorRel
@@ -1829,22 +1829,22 @@ class MainWindow(Qt.QMainWindow):
     def saveCubo(self):
         # guardo solo algunos campos pues los objetos de vtk no son "deep copiables"
         cub = Cube(self.cubo.n)
-        for face in cub.f:
+        for face in cub.faces:
             for fila in range(cub.n):
                 for columna in range(cub.n):
-                    cub.f[face][fila, columna].id = self.cubo.f[face][fila, columna].id
-                    cub.f[face][fila, columna].color = self.cubo.f[face][fila, columna].color
-        preset = self.Preset(cub.f, self.cubo.n, copy.deepcopy(self.cubo.conn), copy.deepcopy(self.cubo.colorRel))
+                    cub.faces[face][fila, columna].id = self.cubo.faces[face][fila, columna].id
+                    cub.faces[face][fila, columna].color = self.cubo.faces[face][fila, columna].color
+        preset = self.Preset(cub.faces, self.cubo.n, copy.deepcopy(self.cubo.conn), copy.deepcopy(self.cubo.colorRel))
         return preset
 
     def loadCuboFrom(self, preset):
         if self.tamanio.value() != preset.n:
             self.tamanio.setValue(self.cubo.n)
-        for face in preset.f:
+        for face in preset.faces:
             for fila in range(preset.n):
                 for columna in range(preset.n):
-                    self.cubo.f[face][fila, columna].id = preset.f[face][fila, columna].id
-                    self.cubo.f[face][fila, columna].color = preset.f[face][fila, columna].color
+                    self.cubo.faces[face][fila, columna].id = preset.faces[face][fila, columna].id
+                    self.cubo.faces[face][fila, columna].color = preset.faces[face][fila, columna].color
         self.cubo.n = preset.n
         self.cubo.conn = copy.deepcopy(preset.conn)
         self.cubo.colorRel = copy.deepcopy(preset.colorRel)
