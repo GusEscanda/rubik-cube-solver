@@ -50,6 +50,13 @@ class Tile:
         self.color = ''
 
 
+class Connection:
+    def __init__(self, face, direct, invert):
+        self.face = face
+        self.direct = direct
+        self.invert = invert
+
+
 class ColorRel:
     def __init__(self, cube):
         """
@@ -133,16 +140,11 @@ class ColorRel:
 
 
 class Cube:
-    class Connection:
-        def __init__(self, face, direct, invert):
-            self.face = face
-            self.direct = direct
-            self.invert = invert
-
     def __init__(self, size=3, white=False):
 
         self.n = size  # each face will have n*n tiles
         self.white = white  # True if it's a cube with all white tiles (useful when you're building the solving methods database)
+
         self.vars = Vars('c')  # Variables to convert logic coordinates to numeric ones
         self.vars.set('T', 1)
         self.vars.set('t', 2)
@@ -169,55 +171,55 @@ class Cube:
         }
         self.initTiles()
 
-        # conexiones entre las caras (que cara conecta con cual en cada uno de sus lados y si las coordenadas se invierten al pasar a la cara contigua
+        # Connections between adjacent faces of the cube. Which one connects with which other, through which edge,
+        # and if the coordinates inverts when you pass to the adjacent face
         self.conn = {
-            # conectar la face frontal con las adyacentes
+            # connect the front face with the adjacent ones
             Face.FRONT: {
-                Dir.UP: self.Connection(face=Face.UP, direct=Dir.UP, invert=False),
-                Dir.DOWN: self.Connection(face=Face.DOWN, direct=Dir.DOWN, invert=False),
-                Dir.LEFT: self.Connection(face=Face.LEFT, direct=Dir.LEFT, invert=False),
-                Dir.RIGHT: self.Connection(face=Face.RIGHT, direct=Dir.RIGHT, invert=False),
+                Dir.UP: Connection(face=Face.UP, direct=Dir.UP, invert=False),
+                Dir.DOWN: Connection(face=Face.DOWN, direct=Dir.DOWN, invert=False),
+                Dir.LEFT: Connection(face=Face.LEFT, direct=Dir.LEFT, invert=False),
+                Dir.RIGHT: Connection(face=Face.RIGHT, direct=Dir.RIGHT, invert=False),
             },
-            # conectar la face de arriba con las adyacentes
+            # connect the upper face with the adjacent ones
             Face.UP: {
-                Dir.UP: self.Connection(face=Face.BACK, direct=Dir.DOWN, invert=True),
-                Dir.DOWN: self.Connection(face=Face.FRONT, direct=Dir.DOWN, invert=False),
-                Dir.LEFT: self.Connection(face=Face.LEFT, direct=Dir.DOWN, invert=False),
-                Dir.RIGHT: self.Connection(face=Face.RIGHT, direct=Dir.DOWN, invert=True),
+                Dir.UP: Connection(face=Face.BACK, direct=Dir.DOWN, invert=True),
+                Dir.DOWN: Connection(face=Face.FRONT, direct=Dir.DOWN, invert=False),
+                Dir.LEFT: Connection(face=Face.LEFT, direct=Dir.DOWN, invert=False),
+                Dir.RIGHT: Connection(face=Face.RIGHT, direct=Dir.DOWN, invert=True),
             },
-            # conectar la face de abajo con las adyacentes
+            # connect the bottom face with the adjacent ones
             Face.DOWN: {
-                Dir.UP: self.Connection(face=Face.FRONT, direct=Dir.UP, invert=False),
-                Dir.DOWN: self.Connection(face=Face.BACK, direct=Dir.UP, invert=True),
-                Dir.LEFT: self.Connection(face=Face.LEFT, direct=Dir.UP, invert=True),
-                Dir.RIGHT: self.Connection(face=Face.RIGHT, direct=Dir.UP, invert=False),
+                Dir.UP: Connection(face=Face.FRONT, direct=Dir.UP, invert=False),
+                Dir.DOWN: Connection(face=Face.BACK, direct=Dir.UP, invert=True),
+                Dir.LEFT: Connection(face=Face.LEFT, direct=Dir.UP, invert=True),
+                Dir.RIGHT: Connection(face=Face.RIGHT, direct=Dir.UP, invert=False),
             },
-            # conectar la face de atras con las adyacentes
+            # connect the back face with the adjacent ones
             Face.BACK: {
-                Dir.UP: self.Connection(face=Face.UP, direct=Dir.DOWN, invert=True),
-                Dir.DOWN: self.Connection(face=Face.DOWN, direct=Dir.UP, invert=True),
-                Dir.LEFT: self.Connection(face=Face.RIGHT, direct=Dir.LEFT, invert=False),
-                Dir.RIGHT: self.Connection(face=Face.LEFT, direct=Dir.RIGHT, invert=False),
+                Dir.UP: Connection(face=Face.UP, direct=Dir.DOWN, invert=True),
+                Dir.DOWN: Connection(face=Face.DOWN, direct=Dir.UP, invert=True),
+                Dir.LEFT: Connection(face=Face.RIGHT, direct=Dir.LEFT, invert=False),
+                Dir.RIGHT: Connection(face=Face.LEFT, direct=Dir.RIGHT, invert=False),
             },
-            # conectar la face izquierda con las adyacentes
+            # connect the left face with the adjacent ones
             Face.LEFT: {
-                Dir.UP: self.Connection(face=Face.UP, direct=Dir.RIGHT, invert=False),
-                Dir.DOWN: self.Connection(face=Face.DOWN, direct=Dir.RIGHT, invert=True),
-                Dir.LEFT: self.Connection(face=Face.BACK, direct=Dir.LEFT, invert=False),
-                Dir.RIGHT: self.Connection(face=Face.FRONT, direct=Dir.RIGHT, invert=False),
+                Dir.UP: Connection(face=Face.UP, direct=Dir.RIGHT, invert=False),
+                Dir.DOWN: Connection(face=Face.DOWN, direct=Dir.RIGHT, invert=True),
+                Dir.LEFT: Connection(face=Face.BACK, direct=Dir.LEFT, invert=False),
+                Dir.RIGHT: Connection(face=Face.FRONT, direct=Dir.RIGHT, invert=False),
             },
-            # conectar la face derecha con las adyacentes
+            # connect the right face with the adjacent ones
             Face.RIGHT: {
-                Dir.UP: self.Connection(face=Face.UP, direct=Dir.LEFT, invert=True),
-                Dir.DOWN: self.Connection(face=Face.DOWN, direct=Dir.LEFT, invert=False),
-                Dir.LEFT: self.Connection(face=Face.FRONT, direct=Dir.LEFT, invert=False),
-                Dir.RIGHT: self.Connection(face=Face.BACK, direct=Dir.RIGHT, invert=False),
+                Dir.UP: Connection(face=Face.UP, direct=Dir.LEFT, invert=True),
+                Dir.DOWN: Connection(face=Face.DOWN, direct=Dir.LEFT, invert=False),
+                Dir.LEFT: Connection(face=Face.FRONT, direct=Dir.LEFT, invert=False),
+                Dir.RIGHT: Connection(face=Face.BACK, direct=Dir.RIGHT, invert=False),
             },
         }
 
         if not self.white:
             self.colorRel = ColorRel(self)
-        return
 
     def initTiles(self):
         for face in self.faces:
@@ -226,27 +228,26 @@ class Cube:
                     self.faces[face][r, c].color = COLORS[face] if not self.white else 'white'
                     self.faces[face][r, c].id = face + ('000' + str(r + 1))[-3:] + ('000' + str(c + 1))[-3:]
 
-    def str2coord(self, sCoord, checkRangoCero=True):
-        c = eval(sCoord, self.vars.vars())
-        if checkRangoCero:
-            c = c - 1  # resto 1 para que esté expresado entre 0 y (self.n-1)
-            c = max(0, min(self.n - 1, c))  # para que no pinche si la coordenada quedó fuera de rango
-        return c
+    def str2coord(self, sCoord, checkLimits=True):
+        coord = eval(sCoord, self.vars.vars()) - 1  # resto 1 para que esté expresado entre 0 y (self.n-1)
+        if checkLimits:
+            coord = max(0, min(self.n - 1, coord))  # para que no pinche si la coordenada quedó fuera de rango
+        return coord
 
-    def str2rango(self, sRango, checkRangoCero=True):
-        desde, hasta = firstAndRest(sRango, ':')
-        hasta = hasta if hasta else desde
-        desde = self.str2coord(desde, checkRangoCero)
-        hasta = self.str2coord(hasta, checkRangoCero)
-        if desde > hasta:
-            desde, hasta = hasta, desde
-        return desde, hasta
+    def str2span(self, sRange, checkLimits=True):
+        beg, end = firstAndRest(sRange, ':')
+        end = end if end else beg
+        beg = self.str2coord(beg, checkLimits)
+        end = self.str2coord(end, checkLimits)
+        if beg > end:
+            beg, end = end, beg
+        return beg, end
 
-    def str2movim(self, mov):
-        # convierte mov a una tupla (idCara, rango, direc, multip) para llamar multip veces al metodo unMovimiento
+    def str2move(self, mov):
+        # convierte mov a una tupla (faceId, rango, direction, multi) para llamar multi veces al metodo unMovimiento
         # mov puede tener la notacion estandar de rubik (F,B,U,D,L,R,M,E,S,x,y,z,minusculas,w,',2)
-        # o bien ser de la forma <idCara>[.<rango desde>[:<rango hasta>]].<direccion> donde:
-        # <idCara> = "F", "B", "U", "D", "L" o "R"
+        # o bien ser de la forma <faceId>[.<rango desde>[:<rango hasta>]].[<multi>]<direccion> donde:
+        # <faceId> = "F", "B", "U", "D", "L" o "R"
         # <rango desde> y <rango hasta> = numero de fila/columna a mover (desde y hasta son inclusive)
         #     - numeros explicitos indican una fila/columna se cuenta desde la izquierda/arriba
         #     - la numeracion va desde 1 a self.n
@@ -261,94 +262,95 @@ class Cube:
         #          ej: T+1 es equivalente a t, B-1 es equivalente a b, t+1 es la 3er fila
         #     - Por cuestiones de simetría T y L (tambien B y R) son equivalentes, se incluyen solo
         #       para dar claridad a la escritura de movimientos. La direccion del movimiento esta dada
-        #       SOLO por el campo “direc”.
+        #       SOLO por el campo “direction”.
         #     - El orden de <rango desde> y <rango hasta> es indistinto (2:5 es equivalente a 5:2)
+        # <multi> = cantidad de veces que se repite el movimiento (digito, optativo)
+        #     - se puede anteponer a la letra de direccion un digito multiplicador, el movimiento se realizara esa
+        #       cantidad de veces
+        #     - 1: default, 2: el mas logico de usar, 3: raro (equivalente a 1 hacia el lado contrario), >3: ridiculo
         # <direccion> = "u", "d", "l", "r", "c", "a" para up, down, left, right, clockwise y anticlockwise
         #     - si la direccion es clockwise o anticlockwise <rango desde>:<rango hasta> se omite / ignora
-        #     - se puede anteponer a la letra de direccion un digito multiplicador, 
-        #          el movimiento se realizara esa cantidad de veces 
-        #          1: default,    2: el mas logico de usar,    3: raro,    >3: ridiculo
         # cualquier movimiento que comience con '><' se considera espejado respecto a un plano definido por los
         # ejes Z e Y
         mm = mov
-        idCara, direc, rango, multip = '', Dir.NULL, (0, 0), 0
+        faceId, span, direction, multi = '', (0, 0), Dir.NULL, 0
 
-        espejo = False
+        mirror = False
         if mm[0:2] == '><':
-            espejo = True  # si está en espejo, proceso normalmente y solo al final considero esa situación
+            mirror = True  # si está en mirror, proceso normalmente y solo al final considero esa situación
             mm = mm[2:]
 
-        if '.' in mm:  # mov : <idCara>[.<rango desde>[:<rango hasta>]].<direccion>
-            idCara, mm = firstAndRest(mm, '.')
-            idCara = idCara.upper()
-            rango = (1, 1)  # solo para que tenga algun valor en caso de no especificarse
+        if '.' in mm:  # mov : <faceId>[.<rango desde>[:<rango hasta>]].[multi]<direccion>
+            faceId, mm = firstAndRest(mm, '.')
+            faceId = faceId.upper()
+            span = (1, 1)  # solo para que tenga algun valor en caso de no especificarse
             if '.' in mm:  # hay un rango especificado
-                rr, mm = firstAndRest(mm, '.')
-                rango = self.str2rango(rr)
-            multip = 1
+                span, mm = firstAndRest(mm, '.')
+                span = self.str2span(span)
+            multi = 1
             if mm[0] in '123456789':  # hay un multiplicador especificado
-                multip, mm = int(mm[:1]), mm[1:]
+                multi, mm = int(mm[:1]), mm[1:]
             mm = mm[:1]
             if mm in 'udlrUDLR':
-                direc = Dir.offset(mm)
+                direction = Dir.offset(mm)
                 mm = ''  # ya no debo procesar mas a mm, tengo todos los datos para devolver
             else:  # mm in 'caCA' (clockwise o anticlockwise) => simulo un movimiento tipo "Rubik estandar"
-                mm = idCara + str(multip) + ("'" if mm in 'aA' else "")
+                mm = faceId + str(multi) + ("'" if mm in 'aA' else "")
 
         if mm:  # continúo procesando, mm es un movimiento tipo estandar de Rubik (F,B,U,D,L,R,M,E,S,x,y,z,minusculas,w,',2)
-            idCara = mm[0]
+            faceId = mm[0]
             mm = mm[1:]
             if mm:
                 if mm[0] in 'wW':  # notacion w -> notacion lowercase
-                    idCara = idCara.lower()
+                    faceId = faceId.lower()
                     mm = mm[1:]
             anti = ("'" in mm)  # movimiento antihorario
             mm = mm[:mm.find("'")] + mm[mm.find("'") + 1:]  # saca el ' dejando solo el numero si lo hubiere
-            multip = (1 if not mm else int(mm))  # si todavía hay un numero, ese es el multiplicador, si no es 1
+            multi = (1 if not mm else int(mm))  # si todavía hay un numero, ese es el multiplicador, si no es 1
 
-            rango = (0, 0)
-            if idCara in 'FBLRUD':
-                rango = (0, 0)
-            elif idCara in 'fblrud':
+            span = (0, 0)
+            if faceId in Face.FACES.upper():
+                span = (0, 0)
+            elif faceId in Face.FACES.lower():
                 # en cubos > 3x3, lo coherente es considerar el bloque central completo (mueve todo menos la cara opuesta)
-                rango = (0, self.n - 2)
-            elif idCara in 'MESmes':  # m e s (minuscula) no tiene sentido pero por simplicidad lo hago equivalente a M E S
+                span = (0, self.n - 2)
+            elif faceId in 'MESmes':  # m e s (minuscula) no tiene sentido pero por simplicidad lo hago equivalente a M E S
                 # bloque central sin las caras laterales
-                rango = (1, self.n - 2)
-            elif idCara in 'XYZxyz':  # X Y Z lo hago equivalente a x y z (esto si se suele usar en upper y lower indistintamente)
+                span = (1, self.n - 2)
+            elif faceId in 'XYZxyz':  # X Y Z lo hago equivalente a x y z (esto si se suele usar en upper y lower indistintamente)
                 # rango completo, cambia la orientacion del cube
-                rango = (0, self.n - 1)
+                span = (0, self.n - 1)
 
-            face, direc = '', ''
-            if idCara in "FfSsZz":
-                face, direc = Face.RIGHT, Dir.DOWN
-            elif idCara in "Bb":
-                face, direc = Face.LEFT, Dir.DOWN
-            elif idCara in "LlMm":
-                face, direc = Face.FRONT, Dir.DOWN
-            elif idCara in "RrXx":
-                face, direc = Face.BACK, Dir.DOWN
-            elif idCara in "UuYy":
-                face, direc = Face.FRONT, Dir.LEFT
-            elif idCara in "DdEe":
-                face, direc = Face.FRONT, Dir.RIGHT
-                rango = (self.n - 1 - rango[1],
-                         self.n - 1 - rango[0])  # solo en el caso de mirar desde abajo, invierto la seleccion del rango
-            idCara = face
+            face, direction = '', ''
+            if faceId in "FfSsZz":
+                face, direction = Face.RIGHT, Dir.DOWN
+            elif faceId in "Bb":
+                face, direction = Face.LEFT, Dir.DOWN
+            elif faceId in "LlMm":
+                face, direction = Face.FRONT, Dir.DOWN
+            elif faceId in "RrXx":
+                face, direction = Face.BACK, Dir.DOWN
+            elif faceId in "UuYy":
+                face, direction = Face.FRONT, Dir.LEFT
+            elif faceId in "DdEe":
+                face, direction = Face.FRONT, Dir.RIGHT
+                # solo en el caso de mirar desde abajo, invierto la seleccion del rango
+                span = (self.n - 1 - span[1], self.n - 1 - span[0])
+            faceId = face
             if anti:  # era antihorario => invierto la direccion
-                direc = (-direc[0], -direc[1])
+                direction = (-direction[0], -direction[1])
 
-        if espejo:
-            if idCara == Face.RIGHT:
-                idCara = Face.LEFT
-            elif idCara == Face.LEFT:
-                idCara = Face.RIGHT
-            if direc == Dir.UP or direc == Dir.DOWN:
-                rango = (self.n - 1 - rango[1], self.n - 1 - rango[0])
-            elif direc == Dir.LEFT or direc == Dir.RIGHT:
-                direc = (-direc[0], -direc[1])
+        if mirror:
+            if faceId == Face.RIGHT:
+                faceId = Face.LEFT
+            elif faceId == Face.LEFT:
+                faceId = Face.RIGHT
+            if direction == Dir.UP or direction == Dir.DOWN:
+                span = (self.n - 1 - span[1], self.n - 1 - span[0])
+            elif direction == Dir.LEFT or direction == Dir.RIGHT:
+                direction = (-direction[0], -direction[1])
 
-        return idCara, rango, direc, multip
+        return faceId, span, direction, multi
 
     def mover(self, movimientos, animacion=False, haciaAtras=False):
         # - movimientos: string con uno o varios movimientos separados por espacios.
@@ -371,7 +373,7 @@ class Cube:
                 continue
             if mov == '-':
                 continue
-            idCara, rango, direc, multip = self.str2movim(espejo + mov)
+            idCara, rango, direc, multip = self.str2move(espejo + mov)
             if haciaAtras:
                 direc = (-direc[0], -direc[1])
             self.unMovimiento(idCara, rango, direc, multip, celdasMovidas)

@@ -240,14 +240,17 @@ def ejecutarMetodo(cubo, met, solucion, level=0):
         cantVeces = int(stripWords(met.modo)[0])
     bestMatch = (met.modo.upper() == 'BEST MATCH')
     if met.rangoI:
-        ddeI, htaI = cubo.str2rango(met.rangoI, checkRangoCero=False)
-        cubo.vars.set('i', ddeI)
+        begI, endI = cubo.str2span(met.rangoI, checkLimits=False)
+        begI, endI = begI + 1, endI + 1
+        cubo.vars.set('i', begI)
     if met.rangoJ:
-        ddeJ, htaJ = cubo.str2rango(met.rangoJ, checkRangoCero=False)
-        cubo.vars.set('j', ddeJ)
+        begJ, endJ = cubo.str2span(met.rangoJ, checkLimits=False)
+        begJ, endJ = begJ + 1, endJ + 1
+        cubo.vars.set('j', begJ)
     if met.rangoK:
-        ddeK, htaK = cubo.str2rango(met.rangoK, checkRangoCero=False)
-        cubo.vars.set('k', ddeK)
+        begK, endK = cubo.str2span(met.rangoK, checkLimits=False)
+        begK, endK = begK + 1, endK + 1
+        cubo.vars.set('k', begK)
     iSol = len(solucion)
     solucion.append(Sol(level, 'Met', met.id, False, met, False, cubo.vars))
     hizoAlgo, success = False, False
@@ -317,22 +320,22 @@ def ejecutarMetodo(cubo, met, solucion, level=0):
                 cant >= cantVeces):  # si terminó la ejecución del metodo, veo si tiene iteraciones y recomienzo
             proxIter = True
             if met.rangoK:
-                if cubo.vars.get('k') == htaK:
-                    cubo.vars.set('k', ddeK)
+                if cubo.vars.get('k') == endK:
+                    cubo.vars.set('k', begK)
                     proxIter = True
                 else:
                     cubo.vars.set('k', cubo.vars.get('k') + 1)
                     proxIter = False
             if met.rangoJ and proxIter:
-                if cubo.vars.get('j') == htaJ:
-                    cubo.vars.set('j', ddeJ)
+                if cubo.vars.get('j') == endJ:
+                    cubo.vars.set('j', begJ)
                     proxIter = True
                 else:
                     cubo.vars.set('j', cubo.vars.get('j') + 1)
                     proxIter = False
             if met.rangoI and proxIter:
-                if cubo.vars.get('i') == htaI:
-                    cubo.vars.set('i', ddeI)
+                if cubo.vars.get('i') == endI:
+                    cubo.vars.set('i', begI)
                     proxIter = True
                 else:
                     cubo.vars.set('i', cubo.vars.get('i') + 1)
@@ -376,8 +379,8 @@ def cond2ListaCeldas(cubo, vars, listaCond):  # devuelve listaCeldas
             rangoColumnas = rangoColumnas.replace('j', str(vars.get('j', 'j')))
             rangoColumnas = rangoColumnas.replace('k', str(vars.get('k', 'k')))
 
-            rangoFilas = cubo.str2rango(rangoFilas)
-            rangoColumnas = cubo.str2rango(rangoColumnas)
+            rangoFilas = cubo.str2span(rangoFilas)
+            rangoColumnas = cubo.str2span(rangoColumnas)
 
             for r, c in rangeRC(rangoFilas, rangoColumnas):
                 listaCeldas.append((face, r, c, colores))
