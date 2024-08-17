@@ -6,6 +6,10 @@ from util import stripWords, firstAndRest, Clase, Vars
 
 # Directions
 class Dir:
+    """
+    Holds some constants and methods to manage the direction of the movements in a cube
+    Each face is an array with n by n tiles, numbered from 0 to n-1, (0, 0) is the top-left corner
+    """
     UP = (-1, 0)  # ( row offset, column offset )
     DOWN = (1, 0)
     RIGHT = (0, 1)
@@ -25,6 +29,9 @@ class Dir:
 
 # Faces of the cube
 class Face:
+    """
+    Constants to hold the one-char code name of the faces and the names of the colors of each face
+    """
     FRONT = 'F'
     BACK = 'B'
     UP = 'U'
@@ -33,24 +40,30 @@ class Face:
     RIGHT = 'R'
     FACES = FRONT + BACK + UP + DOWN + LEFT + RIGHT
 
-
-COLORS = {
-    Face.FRONT: "red",
-    Face.BACK: "orange",
-    Face.UP: "white",
-    Face.DOWN: "yellow",
-    Face.LEFT: "green",
-    Face.RIGHT: "blue"
-}
+    COLOR = {
+        FRONT: "red",
+        BACK: "orange",
+        UP: "white",
+        DOWN: "yellow",
+        LEFT: "green",
+        RIGHT: "blue"
+    }
 
 
 class Tile:
+    """
+    Holds the data of a tile
+    """
     def __init__(self):
         self.id = ''
         self.color = ''
 
 
 class Connection:
+    """
+    Holds the connection between the faces of the cube, ie if I'm in the left face, when I go past the top edge I get to
+    the top face, but if I go past the right edge, I get to the front face, and so on.
+    """
     def __init__(self, face, direct, invert):
         self.face = face
         self.direct = direct
@@ -141,9 +154,13 @@ class ColorRel:
 
 class Cube:
     def __init__(self, size=3, white=False):
-
-        self.n = size  # each face will have n*n tiles
-        self.white = white  # True if it's a cube with all white tiles (useful when you're building the solving methods database)
+        """
+        Holds the data structure and transformations of a regular 6 faces Rubik's cube
+        :param size: each face of the cube will have (size x size) tiles
+        :param white: True if it's a cube with all white tiles (useful when you're building the solving methods database)
+        """
+        self.n = size
+        self.white = white
 
         self.vars = Vars('c')  # Variables to convert logic coordinates to numeric ones
         self.vars.set('T', 1)
@@ -222,103 +239,120 @@ class Cube:
             self.colorRel = ColorRel(self)
 
     def initTiles(self):
+        """
+        Initializes all the tiles of a cube with the color that corresponds to each face
+        """
         for face in self.faces:
             for r in range(self.n):
                 for c in range(self.n):
-                    self.faces[face][r, c].color = COLORS[face] if not self.white else 'white'
+                    self.faces[face][r, c].color = Face.COLOR[face] if not self.white else 'white'
                     self.faces[face][r, c].id = face + ('000' + str(r + 1))[-3:] + ('000' + str(c + 1))[-3:]
 
-    def str2coord(self, sCoord, checkLimits=True):
-        coord = eval(sCoord, self.vars.vars()) - 1  # resto 1 para que esté expresado entre 0 y (self.n-1)
-        if checkLimits:
-            coord = max(0, min(self.n - 1, coord))  # para que no pinche si la coordenada quedó fuera de rango
-        return coord
-
     def str2span(self, sRange, checkLimits=True):
-        beg, end = firstAndRest(sRange, ':')
-        end = end if end else beg
-        beg = self.str2coord(beg, checkLimits)
-        end = self.str2coord(end, checkLimits)
-        if beg > end:
-            beg, end = end, beg
+        """
+        Converts a string that represents a range of rows/columns to move into a tuple begin, end
+        :param sRange: string containing a range with the form <begin>[:<end>] where <begin> and <end> can be just
+                       numbers, logic coordinates like "T" for top, "C" for center, etc. or any arithmetic operation
+                       using them
+        :param checkLimits: True if it's necessary to check if <begin> and <end> are between 0 and n-1
+        :return: (<begin>, <end>) tuple
+        """
+        if ':' in sRange:
+            beg, end = sRange.split(':')
+            beg = eval(beg, self.vars.vars()) - 1
+            end = eval(end, self.vars.vars()) - 1
+            if beg > end:
+                beg, end = end, beg
+        else:
+            beg = eval(sRange, self.vars.vars()) - 1
+            end = beg
+        if checkLimits:
+            beg = 0 if beg < 0 else self.n - 1 if beg >= self.n else beg
+            end = 0 if end < 0 else self.n - 1 if end >= self.n else end
         return beg, end
 
     def str2move(self, mov):
-        # convierte mov a una tupla (faceId, rango, direction, multi) para llamar multi veces al metodo unMovimiento
-        # mov puede tener la notacion estandar de rubik (F,B,U,D,L,R,M,E,S,x,y,z,minusculas,w,',2)
-        # o bien ser de la forma <faceId>[.<rango desde>[:<rango hasta>]].[<multi>]<direccion> donde:
-        # <faceId> = "F", "B", "U", "D", "L" o "R"
-        # <rango desde> y <rango hasta> = numero de fila/columna a mover (desde y hasta son inclusive)
-        #     - numeros explicitos indican una fila/columna se cuenta desde la izquierda/arriba
-        #     - la numeracion va desde 1 a self.n
-        #     - 'T' o 'L' (Top/Left) indican la 1ra fla/columna (son equivalentes a 1)
-        #     - 't' o 'l' (top/left) indican la 2da fla/columna (son equivalentes a 2)
-        #     - 'B' o 'R' (Bottom/Right) indican la última fla/columna
-        #     - 'b' o 'r' (bottom/right) indican la penúltima fla/columna
-        #     - 'c' o 'C' (Center) indican la fla/columna central
-        #          en cubos impares c y C son equivalentes
-        #          en cubos pares c y C son la coordenada menor y mayor de las 2 centrales
-        #     - Luego de TLtlBRbrcC puede haber un numero sumando o restando
-        #          ej: T+1 es equivalente a t, B-1 es equivalente a b, t+1 es la 3er fila
-        #     - Por cuestiones de simetría T y L (tambien B y R) son equivalentes, se incluyen solo
-        #       para dar claridad a la escritura de movimientos. La direccion del movimiento esta dada
-        #       SOLO por el campo “direction”.
-        #     - El orden de <rango desde> y <rango hasta> es indistinto (2:5 es equivalente a 5:2)
-        # <multi> = cantidad de veces que se repite el movimiento (digito, optativo)
-        #     - se puede anteponer a la letra de direccion un digito multiplicador, el movimiento se realizara esa
-        #       cantidad de veces
-        #     - 1: default, 2: el mas logico de usar, 3: raro (equivalente a 1 hacia el lado contrario), >3: ridiculo
-        # <direccion> = "u", "d", "l", "r", "c", "a" para up, down, left, right, clockwise y anticlockwise
-        #     - si la direccion es clockwise o anticlockwise <rango desde>:<rango hasta> se omite / ignora
-        # cualquier movimiento que comience con '><' se considera espejado respecto a un plano definido por los
-        # ejes Z e Y
+        """
+        Converts a string 'mov' into a tuple (faceId, span, direction, times) to call the method 'oneMove' <times> times.
+        The string 'mov' can follow standard Rubik's notation (F, B, U, D, L, R, M, E, S, x, y, z, lowercase letters, w, ', 2)
+        or be in the form <faceId>[.<span start>[:<span end>]].[<times>]<direction> where:
+
+        <faceId> = "F", "B", "U", "D", "L", or "R"
+        <span start> and <span end> = row/column numbers to move (start and end are inclusive)
+            - Explicit numbers indicate rows/columns counted from the top/left
+            - The numbering goes from 1 to self.n
+            - 'T' or 'L' (Top/Left) indicate the 1st row/column (equivalent to 1)
+            - 't' or 'l' (top/left) indicate the 2nd row/column (equivalent to 2)
+            - 'B' or 'R' (Bottom/Right) indicate the last row/column
+            - 'b' or 'r' (bottom/right) indicate the second-to-last row/column
+            - 'c' or 'C' (Center) indicate the middle row/column
+                - On odd-sized cubes, c and C are equivalent
+                - On even-sized cubes, c and C represent the smaller and larger of the two central rows/columns
+            - After TLtlBRbrcC, you can add or subtract a number
+                e.g.: T+1 is equivalent to t, B-1 is equivalent to b, t+1 is the 3rd row
+            - For symmetry purposes, T and L (as well as B and R) are equivalent and included only to clarify the movement notation.
+              The direction of the movement is determined ONLY by the “direction” field.
+            - The order of <span start> and <span end> is interchangeable (2:5 is equivalent to 5:2)
+
+        <times> = number of times the move is repeated (digit, optional)
+            - A multiplier can be prefixed to the direction letter, indicating how many times the move should be performed
+            - 1: default, 2: the most logical to use, 3: rare (equivalent to 1 in the opposite direction), >3: ridiculous
+
+        <direction> = "u", "d", "l", "r", "c", "a" for up, down, left, right, clockwise, and anticlockwise
+            - If the direction is clockwise or anticlockwise, <span start>:<span end> is omitted/ignored
+
+        Any move that begins with "><" is considered mirrored with respect to a plane defined by the Z and Y axes.
+
+        :param mov: the string with the move to perform, coded as explained above
+        :return: (faceId, span, direction, times) tuple
+        """
         mm = mov
-        faceId, span, direction, multi = '', (0, 0), Dir.NULL, 0
+        faceId, span, direction, times = '', (0, 0), Dir.NULL, 0
 
         mirror = False
         if mm[0:2] == '><':
-            mirror = True  # si está en mirror, proceso normalmente y solo al final considero esa situación
+            mirror = True  # remember that I'm in mirror mode, take this in account just before the end
             mm = mm[2:]
 
-        if '.' in mm:  # mov : <faceId>[.<rango desde>[:<rango hasta>]].[multi]<direccion>
+        if '.' in mm:  # mov is in the form <faceId>[.<span start>[:<span end>]].[<times>]<direction>
             faceId, mm = firstAndRest(mm, '.')
             faceId = faceId.upper()
-            span = (1, 1)  # solo para que tenga algun valor en caso de no especificarse
-            if '.' in mm:  # hay un rango especificado
+            span = (1, 1)  # default value
+            if '.' in mm:  # there is an explicit span
                 span, mm = firstAndRest(mm, '.')
                 span = self.str2span(span)
-            multi = 1
-            if mm[0] in '123456789':  # hay un multiplicador especificado
-                multi, mm = int(mm[:1]), mm[1:]
+            times = 1
+            if mm[0] in '123456789':  # there is an explicit multiplier
+                times, mm = int(mm[:1]), mm[1:]
             mm = mm[:1]
             if mm in 'udlrUDLR':
                 direction = Dir.offset(mm)
-                mm = ''  # ya no debo procesar mas a mm, tengo todos los datos para devolver
-            else:  # mm in 'caCA' (clockwise o anticlockwise) => simulo un movimiento tipo "Rubik estandar"
-                mm = faceId + str(multi) + ("'" if mm in 'aA' else "")
+                mm = ''  # I don't have to process mm anymore, I have all the data to return
+            else:  # mm in 'caCA' (clockwise o anticlockwise) => use a standard Rubik's movement
+                mm = faceId + str(times) + ("'" if mm in 'aA' else "")
 
-        if mm:  # continúo procesando, mm es un movimiento tipo estandar de Rubik (F,B,U,D,L,R,M,E,S,x,y,z,minusculas,w,',2)
+        if mm:  # mm is a standard Rubik's movement (F, B, U, D, L, R, M, E, S, x, y, z, lowercase letters, w, ', 2)
             faceId = mm[0]
             mm = mm[1:]
             if mm:
-                if mm[0] in 'wW':  # notacion w -> notacion lowercase
+                if mm[0] in 'wW':  # w notation -> lowercase notation
                     faceId = faceId.lower()
                     mm = mm[1:]
-            anti = ("'" in mm)  # movimiento antihorario
-            mm = mm[:mm.find("'")] + mm[mm.find("'") + 1:]  # saca el ' dejando solo el numero si lo hubiere
-            multi = (1 if not mm else int(mm))  # si todavía hay un numero, ese es el multiplicador, si no es 1
+            anti = ("'" in mm)  # anticlockwise
+            mm = mm[:mm.find("'")] + mm[mm.find("'") + 1:]  # remove the ' leaving only the number if there is one
+            times = (1 if not mm else int(mm))  # If there is still a number, that is the multiplier, if not, 1 is default
 
             span = (0, 0)
             if faceId in Face.FACES.upper():
                 span = (0, 0)
             elif faceId in Face.FACES.lower():
-                # en cubos > 3x3, lo coherente es considerar el bloque central completo (mueve todo menos la cara opuesta)
+                # In cubes > 3x3, it is logical to consider the entire central block (move everything except the opposite face)
                 span = (0, self.n - 2)
-            elif faceId in 'MESmes':  # m e s (minuscula) no tiene sentido pero por simplicidad lo hago equivalente a M E S
-                # bloque central sin las caras laterales
+            elif faceId in 'MESmes':  # m e s (lowercase) does not make sense but for simplicity I make it equivalent to M E S
+                # central block without the side faces
                 span = (1, self.n - 2)
-            elif faceId in 'XYZxyz':  # X Y Z lo hago equivalente a x y z (esto si se suele usar en upper y lower indistintamente)
-                # rango completo, cambia la orientacion del cube
+            elif faceId in 'XYZxyz':  # X Y Z, I make it equivalent to x y z (this is usually used in upper and lower interchangeably)
+                # full range, change the orientation of the cube
                 span = (0, self.n - 1)
 
             face, direction = '', ''
@@ -334,10 +368,10 @@ class Cube:
                 face, direction = Face.FRONT, Dir.LEFT
             elif faceId in "DdEe":
                 face, direction = Face.FRONT, Dir.RIGHT
-                # solo en el caso de mirar desde abajo, invierto la seleccion del rango
+                # Only in the case of looking from below, I invert the range selection
                 span = (self.n - 1 - span[1], self.n - 1 - span[0])
             faceId = face
-            if anti:  # era antihorario => invierto la direccion
+            if anti:  # Anticlockwise => reverse the direction
                 direction = (-direction[0], -direction[1])
 
         if mirror:
@@ -350,7 +384,7 @@ class Cube:
             elif direction == Dir.LEFT or direction == Dir.RIGHT:
                 direction = (-direction[0], -direction[1])
 
-        return faceId, span, direction, multi
+        return faceId, span, direction, times
 
     def mover(self, movimientos, animacion=False, haciaAtras=False):
         # - movimientos: string con uno o varios movimientos separados por espacios.
@@ -483,9 +517,9 @@ class Cube:
             rrr = (np.random.randint(self.n), np.random.randint(self.n))
             rrr = (min(rrr), max(rrr))
             direction = [Dir.UP, Dir.DOWN, Dir.LEFT, Dir.RIGHT][np.random.randint(4)]
-            multi = np.random.randint(1, 4)
-            moves.append(f'{face}.{str(rrr[0] + 1)}:{str(rrr[1] + 1)}.{str(multi)}{direction}')
-            self.unMovimiento(face, rrr, direction, multi)
+            times = np.random.randint(1, 4)
+            moves.append(f'{face}.{str(rrr[0] + 1)}:{str(rrr[1] + 1)}.{str(times)}{direction}')
+            self.unMovimiento(face, rrr, direction, times)
         return ' '.join(moves)
 
 
