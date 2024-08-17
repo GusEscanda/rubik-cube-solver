@@ -405,7 +405,7 @@ class Cube:
             face, span, direction, times = self.str2move(mirror + mov)
             if backwards:
                 direction = (-direction[0], -direction[1])
-            self.unMovimiento(face, span, direction, times)
+            self.oneMove(face, span, direction, times)
 
     def readWriteCeldas(self, face, rango, direc, set=False, celdas=[], celdasMovidas=False):
         # - Lee (y eventualmente reemplaza) un rango de celdas de la matriz de una face del cube
@@ -447,7 +447,7 @@ class Cube:
             r, c = r + direc[0], c + direc[1]
         return np.array(ret)
 
-    def unMovimiento(self, idCara, rango, direc, multip=1, celdasMovidas=False):
+    def oneMove(self, idCara, rango, direc, multip=1, celdasMovidas=False):
         for _ in range(multip):
             # Hace un movimiento del cube (solo hace movimientos para direccciones 'udlr')
             face, rr, dd = idCara, rango, direc
@@ -547,7 +547,7 @@ class Cube:
             direction = [Dir.UP, Dir.DOWN, Dir.LEFT, Dir.RIGHT][np.random.randint(4)]
             times = np.random.randint(1, 4)
             moves.append(f'{face}.{str(rrr[0] + 1)}:{str(rrr[1] + 1)}.{str(times)}{direction}')
-            self.unMovimiento(face, rrr, direction, times)
+            self.oneMove(face, rrr, direction, times)
         return ' '.join(moves)
 
 
