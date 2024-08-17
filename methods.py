@@ -281,7 +281,7 @@ def ejecutarMetodo(cubo, met, solucion, level=0):
                 algoritmo = algoritmo.replace('i', str(cubo.vars.get('i', 'i')))
                 algoritmo = algoritmo.replace('j', str(cubo.vars.get('j', 'j')))
                 algoritmo = algoritmo.replace('k', str(cubo.vars.get('k', 'k')))
-                cubo.mover(posicion + ' ' + algoritmo)
+                cubo.makeMoves(posicion + ' ' + algoritmo)
                 hizo = (posicion != '' or algoritmo != '')
                 if hizo:
                     if posicion != '':
@@ -305,7 +305,8 @@ def ejecutarMetodo(cubo, met, solucion, level=0):
                 algoritmo = algoritmo.replace('i', str(cubo.vars.get('i', 'i')))
                 algoritmo = algoritmo.replace('j', str(cubo.vars.get('j', 'j')))
                 algoritmo = algoritmo.replace('k', str(cubo.vars.get('k', 'k')))
-                cubo.mover(posicion + ' >< ' + algoritmo)  # los movimientos que siguen a un '><' se ejecutan en espejo
+                cubo.makeMoves(
+                    posicion + ' >< ' + algoritmo)  # los movimientos que siguen a un '><' se ejecutan en espejo
                 hizo = (posicion != '' or algoritmo != '')
                 if hizo:
                     if posicion != '':

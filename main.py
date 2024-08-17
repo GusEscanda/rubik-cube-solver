@@ -240,12 +240,16 @@ class MainWindow(Qt.QMainWindow):
                     self.parent.actualizaCurrentRowSoluc(int(self.jobs[0].movim.split('-')[1]))
                     self.endJob()
                     return
-                celdasMovidas, caraAnticlockwise = self.cuboAnim.mover(self.jobs[0].movim, self.mostrarMovim)
+                face, span, direction, times = self.cuboAnim.str2move(self.jobs[0].movim)
+                celdasMovidas = False if not self.mostrarMovim else []
+                self.cuboAnim.unMovimiento(face, span, direction, times, celdasMovidas)
                 if self.mostrarMovim:
-                    self.jobs[0].listaActores = [
-                        self.cuboAnim.faces[face][r, c].ass for (face, r, c) in celdasMovidas]
+                    self.jobs[0].listaActores = [self.cuboAnim.faces[f][r, c].ass for (f, r, c) in celdasMovidas]
                     n = self.cuboAnim.n
-                    self.jobs[0].vector = np.dot([(n - 1) / 2, (n - 1) / 2, 1], self.cuboAnim.FC2xyz[caraAnticlockwise])
+                    self.jobs[0].vector = np.dot(
+                        [(n - 1) / 2, (n - 1) / 2, 1],
+                        self.cuboAnim.FC2xyz[self.cuboAnim.anticlockwiseFace(face, direction)]
+                    )
                     self.jobs[0].rotar = 90  # si el giro es multiple los actores estan multip veces => siempre 90
                 else:
                     self.jobs.popleft()  # no hago endJob para no actualizar la pantalla en cada movimiento
@@ -1623,12 +1627,12 @@ class MainWindow(Qt.QMainWindow):
         row = self.proxSolucRowHizo(self.solucRow, -1)
         s = self.soluc[row]
         if s.tipo in 'Alg/Pos':
-            self.cubo.mover(s.texto, animacion=False, haciaAtras=True)
+            self.cubo.makeMoves(s.texto, backwards=True)
         while row > 0 and tipoDetencion == 3:
             row = self.proxSolucRowHizo(row, -1)
             s = self.soluc[row]
             if s.tipo in 'Alg/Pos':
-                self.cubo.mover(s.texto, animacion=False, haciaAtras=True)
+                self.cubo.makeMoves(s.texto, backwards=True)
         self.actualizaCurrentRowSoluc(row)
         self.cubo.refreshActores()
 

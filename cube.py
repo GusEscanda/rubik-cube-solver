@@ -98,7 +98,7 @@ class ColorRel:
             self.setRelColor('c', colorList)
             colorList.reverse()
             self.setRelColor('a', colorList)  # anticlockwise same corner
-            cube.mover('X')  # after 4 moves the cube returns to the original position
+            cube.makeMoves('X')  # after 4 moves the cube returns to the original position
         for color in self._colorRel:
             opposite = ''
             for ccc in self._colorRel:
@@ -273,11 +273,11 @@ class Cube:
 
     def str2move(self, mov):
         """
-        Converts a string 'mov' into a tuple (faceId, span, direction, times) to call the method 'oneMove' <times> times.
+        Converts a string 'mov' into a tuple (face, span, direction, times) to call the method 'oneMove' <times> times.
         The string 'mov' can follow standard Rubik's notation (F, B, U, D, L, R, M, E, S, x, y, z, lowercase letters, w, ', 2)
-        or be in the form <faceId>[.<span start>[:<span end>]].[<times>]<direction> where:
+        or be in the form <face>[.<span start>[:<span end>]].[<times>]<direction> where:
 
-        <faceId> = "F", "B", "U", "D", "L", or "R"
+        <face> = "F", "B", "U", "D", "L", or "R"
         <span start> and <span end> = row/column numbers to move (start and end are inclusive)
             - Explicit numbers indicate rows/columns counted from the top/left
             - The numbering goes from 1 to self.n
@@ -304,19 +304,19 @@ class Cube:
         Any move that begins with "><" is considered mirrored with respect to a plane defined by the Z and Y axes.
 
         :param mov: the string with the move to perform, coded as explained above
-        :return: (faceId, span, direction, times) tuple
+        :return: (face, span, direction, times) tuple
         """
         mm = mov
-        faceId, span, direction, times = '', (0, 0), Dir.NULL, 0
+        face, span, direction, times = '', (0, 0), Dir.NULL, 0
 
         mirror = False
         if mm[0:2] == '><':
             mirror = True  # remember that I'm in mirror mode, take this in account just before the end
             mm = mm[2:]
 
-        if '.' in mm:  # mov is in the form <faceId>[.<span start>[:<span end>]].[<times>]<direction>
-            faceId, mm = firstAndRest(mm, '.')
-            faceId = faceId.upper()
+        if '.' in mm:  # mov is in the form <face>[.<span start>[:<span end>]].[<times>]<direction>
+            face, mm = firstAndRest(mm, '.')
+            face = face.upper()
             span = (1, 1)  # default value
             if '.' in mm:  # there is an explicit span
                 span, mm = firstAndRest(mm, '.')
@@ -329,95 +329,83 @@ class Cube:
                 direction = Dir.offset(mm)
                 mm = ''  # I don't have to process mm anymore, I have all the data to return
             else:  # mm in 'caCA' (clockwise o anticlockwise) => use a standard Rubik's movement
-                mm = faceId + str(times) + ("'" if mm in 'aA' else "")
+                mm = face + str(times) + ("'" if mm in 'aA' else "")
 
         if mm:  # mm is a standard Rubik's movement (F, B, U, D, L, R, M, E, S, x, y, z, lowercase letters, w, ', 2)
-            faceId = mm[0]
+            face = mm[0]
             mm = mm[1:]
             if mm:
                 if mm[0] in 'wW':  # w notation -> lowercase notation
-                    faceId = faceId.lower()
+                    face = face.lower()
                     mm = mm[1:]
             anti = ("'" in mm)  # anticlockwise
             mm = mm[:mm.find("'")] + mm[mm.find("'") + 1:]  # remove the ' leaving only the number if there is one
             times = (1 if not mm else int(mm))  # If there is still a number, that is the multiplier, if not, 1 is default
 
             span = (0, 0)
-            if faceId in Face.FACES.upper():
+            if face in Face.FACES.upper():
                 span = (0, 0)
-            elif faceId in Face.FACES.lower():
+            elif face in Face.FACES.lower():
                 # In cubes > 3x3, it is logical to consider the entire central block (move everything except the opposite face)
                 span = (0, self.n - 2)
-            elif faceId in 'MESmes':  # m e s (lowercase) does not make sense but for simplicity I make it equivalent to M E S
+            elif face in 'MESmes':  # m e s (lowercase) does not make sense but for simplicity I make it equivalent to M E S
                 # central block without the side faces
                 span = (1, self.n - 2)
-            elif faceId in 'XYZxyz':  # X Y Z, I make it equivalent to x y z (this is usually used in upper and lower interchangeably)
+            elif face in 'XYZxyz':  # X Y Z, I make it equivalent to x y z (this is usually used in upper and lower interchangeably)
                 # full range, change the orientation of the cube
                 span = (0, self.n - 1)
 
-            face, direction = '', ''
-            if faceId in "FfSsZz":
-                face, direction = Face.RIGHT, Dir.DOWN
-            elif faceId in "Bb":
-                face, direction = Face.LEFT, Dir.DOWN
-            elif faceId in "LlMm":
-                face, direction = Face.FRONT, Dir.DOWN
-            elif faceId in "RrXx":
-                face, direction = Face.BACK, Dir.DOWN
-            elif faceId in "UuYy":
-                face, direction = Face.FRONT, Dir.LEFT
-            elif faceId in "DdEe":
-                face, direction = Face.FRONT, Dir.RIGHT
+            f, direction = '', ''
+            if face in "FfSsZz":
+                f, direction = Face.RIGHT, Dir.DOWN
+            elif face in "Bb":
+                f, direction = Face.LEFT, Dir.DOWN
+            elif face in "LlMm":
+                f, direction = Face.FRONT, Dir.DOWN
+            elif face in "RrXx":
+                f, direction = Face.BACK, Dir.DOWN
+            elif face in "UuYy":
+                f, direction = Face.FRONT, Dir.LEFT
+            elif face in "DdEe":
+                f, direction = Face.FRONT, Dir.RIGHT
                 # Only in the case of looking from below, I invert the range selection
                 span = (self.n - 1 - span[1], self.n - 1 - span[0])
-            faceId = face
+            face = f
             if anti:  # Anticlockwise => reverse the direction
                 direction = (-direction[0], -direction[1])
 
         if mirror:
-            if faceId == Face.RIGHT:
-                faceId = Face.LEFT
-            elif faceId == Face.LEFT:
-                faceId = Face.RIGHT
+            if face == Face.RIGHT:
+                face = Face.LEFT
+            elif face == Face.LEFT:
+                face = Face.RIGHT
             if direction == Dir.UP or direction == Dir.DOWN:
                 span = (self.n - 1 - span[1], self.n - 1 - span[0])
             elif direction == Dir.LEFT or direction == Dir.RIGHT:
                 direction = (-direction[0], -direction[1])
 
-        return faceId, span, direction, times
+        return face, span, direction, times
 
-    def mover(self, movimientos, animacion=False, haciaAtras=False):
-        # - movimientos: string con uno o varios movimientos separados por espacios.
-        # - interpreta estos movimientos con la funcion str2movim y los ejecuta
-        # - animacion: si es True, devuelve los datos necesarios para animar el movimiento
-        #         para animar se debe llamar con movimientos individuales (el llamado lo hace el modulo de animacion)
-        if animacion:
-            celdasMovidas = []
-            caraAnticlockwise = ''
-        else:
-            celdasMovidas = False
-            caraAnticlockwise = ''
-        movs = stripWords(movimientos)
-        if haciaAtras:
-            movs.reverse()
-        espejo = ''
-        for mov in movs:
+    def makeMoves(self, sMoves, backwards=False):
+        """
+        Parses the moves in sMoves with the method "str2move" and make them.
+        :param sMoves: string containing one or more moves separated by spaces
+        :param backwards: if True, start from the end and make all the moves backwards
+        """
+        moves = stripWords(sMoves)
+        if backwards:
+            moves.reverse()
+        mirror = ''
+        for mov in moves:
             if mov == '><':
-                espejo = '><' if espejo == '' else ''
+                mirror = '><' if mirror == '' else ''
                 continue
             if mov == '-':
                 continue
-            idCara, rango, direc, multip = self.str2move(espejo + mov)
-            if haciaAtras:
-                direc = (-direc[0], -direc[1])
-            self.unMovimiento(idCara, rango, direc, multip, celdasMovidas)
-            if animacion:
-                connCara = self.conn[idCara]
-                if (direc == Dir.RIGHT) or (direc == Dir.LEFT):
-                    caraAnticlockwise = connCara[Dir.UP].face if direc == Dir.RIGHT else connCara[Dir.DOWN].face
-                else:  # (direc == Dir.UP) or (direc == Dir.DOWN)
-                    caraAnticlockwise = connCara[Dir.LEFT].face if direc == Dir.UP else connCara[Dir.RIGHT].face
-        return celdasMovidas, caraAnticlockwise
+            face, span, direction, times = self.str2move(mirror + mov)
+            if backwards:
+                direction = (-direction[0], -direction[1])
+            self.unMovimiento(face, span, direction, times)
 
     def readWriteCeldas(self, face, rango, direc, set=False, celdas=[], celdasMovidas=False):
         # - Lee (y eventualmente reemplaza) un rango de celdas de la matriz de una face del cube
@@ -508,6 +496,46 @@ class Cube:
                 Dir.LEFT: self.faces[caraVecina][xx, -1]
                 }[cxnVecina.direct]
 
+    def anticlockwiseFace(self, face, direction):
+        """
+        Returns the face that is anticlockwise to the parameter face and the given direction, ie if you're in the front
+        face moving to the right direction, the anticlockwise face is the up face, but if you're moving to the left, the
+        anticlockwise face is the down face
+        :param face: the face where you're in
+        :param direction: the direction of your current movement
+        :return: the face that is anticlockwise of your face relative to your movement
+        """
+        if direction == Dir.RIGHT:
+            return self.conn[face][Dir.UP].face
+        elif direction == Dir.LEFT:
+            return self.conn[face][Dir.DOWN].face
+        elif direction == Dir.UP:
+            return self.conn[face][Dir.LEFT].face
+        elif direction == Dir.DOWN:
+            return self.conn[face][Dir.RIGHT].face
+        else:
+            return None
+
+    def clockwiseFace(self, face, direction):
+        """
+        Returns the face that is clockwise to the parameter face and the given direction, ie if you're in the front
+        face moving to the right direction, the clockwise face is the down face, but if you're moving to the left, the
+        clockwise face is the up face
+        :param face: the face where you're in
+        :param direction: the direction of your current movement
+        :return: the face that is clockwise of your face relative to your movement
+        """
+        if direction == Dir.RIGHT:
+            return self.conn[face][Dir.DOWN].face
+        elif direction == Dir.LEFT:
+            return self.conn[face][Dir.UP].face
+        elif direction == Dir.UP:
+            return self.conn[face][Dir.RIGHT].face
+        elif direction == Dir.DOWN:
+            return self.conn[face][Dir.LEFT].face
+        else:
+            return None
+
     def shuffle(self, qty=0):
         moves = []
         if qty <= 0:
@@ -564,7 +592,7 @@ def test():
     print('Hacer movimientos')
     movim = input("Movimiento(s) : ")
     while movim:
-        cube.mover(movim)
+        cube.makeMoves(movim)
         for face in Face.FACES:
             print('Cara :', face)
             for i in range(cube.n):
