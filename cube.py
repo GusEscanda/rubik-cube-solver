@@ -407,8 +407,8 @@ class Cube:
                 direction = (-direction[0], -direction[1])
             self.oneMove(face, span, direction, times)
 
-    def readWriteCeldas(self, face, rango, direc, set=False, celdas=[], celdasMovidas=False):
-        # - Lee (y eventualmente reemplaza) un rango de celdas de la matriz de una face del cube
+    def readWriteCeldas(self, face, span, direction, set=False, tiles=[], celdasMovidas=False):
+        # - Lee (y eventualmente reemplaza) un rango de celdas de la matriz de una cara del cube
         # - rango: es una tupla (desde,hasta) ordenada, es decir que si esta en orden inverso, las celdas se leeran tambien en orden inverso
         # - direc: es la direccion del movimiento, si es arriba o abajo, el rango es de columnas (se toman entonces todas las filas)
         #          si direc es derecha o izquierda el rango es de filas y se toman todas las columnas
@@ -417,34 +417,32 @@ class Cube:
         # - celdasMovidas: si se pasa como parametro un objeto tipo lista, se agrega a esa lista la direccion (cara, fila, columna) de las celdas
         #                  que se estan moviendo. Para uso de los modulos graficos (por si quiero mostrar las celdas en movimiento)
         # - Devuelve una matriz con el contenido de las celdas del rango especificado.
-        rinv = 1
-        if rango[0] > rango[1]:
-            rinv = -1
-        if direc == Dir.RIGHT:
-            r, c = rango[0], 0
-            rr, rc = rinv, 0
-        elif direc == Dir.LEFT:
-            r, c = rango[0], self.n - 1
-            rr, rc = rinv, 0
-        elif direc == Dir.DOWN:
-            r, c = 0, rango[0]
-            rr, rc = 0, rinv
-        elif direc == Dir.UP:
-            r, c = self.n - 1, rango[0]
-            rr, rc = 0, rinv
+        step = -1 if span[0] > span[1] else 1
+        if direction == Dir.RIGHT:
+            r, c = span[0], 0
+            rr, rc = step, 0
+        elif direction == Dir.LEFT:
+            r, c = span[0], self.n - 1
+            rr, rc = step, 0
+        elif direction == Dir.DOWN:
+            r, c = 0, span[0]
+            rr, rc = 0, step
+        elif direction == Dir.UP:
+            r, c = self.n - 1, span[0]
+            rr, rc = 0, step
         ret = []
         while (0 <= r < self.n) and (0 <= c < self.n):
             rrr = []
-            for xx in range(abs(rango[1] - rango[0]) + 1):
+            for xx in range(abs(span[1] - span[0]) + 1):
                 rrr.append(self.faces[face][r + xx * rr, c + xx * rc])
             ret.append(rrr)
             if set:
-                for xx in range(abs(rango[1] - rango[0]) + 1):
-                    self.faces[face][r + xx * rr, c + xx * rc] = celdas[len(ret) - 1, xx]
+                for xx in range(abs(span[1] - span[0]) + 1):
+                    self.faces[face][r + xx * rr, c + xx * rc] = tiles[len(ret) - 1, xx]
                 if type(celdasMovidas) == list:
-                    for xx in range(abs(rango[1] - rango[0]) + 1):
+                    for xx in range(abs(span[1] - span[0]) + 1):
                         celdasMovidas.append((face, r + xx * rr, c + xx * rc))
-            r, c = r + direc[0], c + direc[1]
+            r, c = r + direction[0], c + direction[1]
         return np.array(ret)
 
     def oneMove(self, idCara, rango, direc, multip=1, celdasMovidas=False):
@@ -458,8 +456,8 @@ class Cube:
                 face, dd = conn.face, conn.direct
                 if conn.invert:
                     rr = (self.n - rr[0] - 1, self.n - rr[1] - 1)
-                celdas = self.readWriteCeldas(face, rr, dd, set=True, celdas=celdas, celdasMovidas=celdasMovidas)
-            # cuando el rango incluye uno o ambos bordes rotar la(s) face(s) lateral(es), en sentido horario o antihorario
+                celdas = self.readWriteCeldas(face, rr, dd, set=True, tiles=celdas, celdasMovidas=celdasMovidas)
+            # cuando el rango incluye uno o ambos bordes rotar la(s) cara(s) lateral(es), en sentido horario o antihorario
             if min(rango) == 0:
                 if (direc == Dir.RIGHT) or (direc == Dir.LEFT):
                     face = self.conn[idCara][Dir.UP].face
@@ -468,10 +466,8 @@ class Cube:
                     face = self.conn[idCara][Dir.LEFT].face
                     dirRotacion = 1 if direc == Dir.UP else 3  # 1 = antihorario, 3 = horario
                 self.faces[face] = np.rot90(self.faces[face], dirRotacion)
-                if type(celdasMovidas) == list:
-                    for r in range(self.n):
-                        for c in range(self.n):
-                            celdasMovidas.append((face, r, c))
+                if isinstance(celdasMovidas, list):
+                    celdasMovidas.extend([(face, r, c) for r in range(self.n) for c in range(self.n)])
             if max(rango) == self.n - 1:
                 if (direc == Dir.RIGHT) or (direc == Dir.LEFT):
                     face = self.conn[idCara][Dir.DOWN].face
@@ -480,10 +476,8 @@ class Cube:
                     face = self.conn[idCara][Dir.RIGHT].face
                     dirRotacion = 1 if direc == Dir.DOWN else 3  # 1 = antihorario, 3 = horario
                 self.faces[face] = np.rot90(self.faces[face], dirRotacion)
-                if type(celdasMovidas) == list:
-                    for r in range(self.n):
-                        for c in range(self.n):
-                            celdasMovidas.append((face, r, c))
+                if isinstance(celdasMovidas, list):
+                    celdasMovidas.extend([(face, r, c) for r in range(self.n) for c in range(self.n)])
 
     def vecina(self, face, coord, direc):
         '''Devuelve el contenido de la celda vecina en la face vecina'''
