@@ -241,7 +241,7 @@ class MainWindow(Qt.QMainWindow):
                     self.endJob()
                     return
                 face, span, direction, times = self.cuboAnim.str2move(self.jobs[0].movim)
-                celdasMovidas = False if not self.mostrarMovim else []
+                celdasMovidas = None if not self.mostrarMovim else []
                 self.cuboAnim.oneMove(face, span, direction, times, celdasMovidas)
                 if self.mostrarMovim:
                     self.jobs[0].listaActores = [self.cuboAnim.faces[f][r, c].ass for (f, r, c) in celdasMovidas]

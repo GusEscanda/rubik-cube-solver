@@ -1,7 +1,7 @@
 # Basic data structures and processes of a Rubik's cube
 
 import numpy as np
-from util import stripWords, firstAndRest, Clase, Vars
+from util import stripWords, firstAndRest, Vars
 
 
 # Directions
@@ -62,12 +62,14 @@ class Tile:
 class Connection:
     """
     Holds the connection between the faces of the cube, ie if I'm in the left face, when I go past the top edge I get to
-    the top face, but if I go past the right edge, I get to the front face, and so on.
+    the top face, but if I go past the right edge, I get to the front face, and so on. Also holds info about how the
+    rows and columns behave when go through the edges
     """
-    def __init__(self, face, direct, invert):
+    def __init__(self, face, direct, invert, transpose):
         self.face = face
         self.direct = direct
         self.invert = invert
+        self.transpose = transpose
 
 
 class ColorRel:
@@ -127,7 +129,7 @@ class ColorRel:
                     d[colorList[i]] = {}
                 d = d[colorList[i]]
 
-    def listCols(self, rel, color1, color2=None):
+    def listColors(self, rel, color1, color2=None):
         """
         Returns a list of colors that have the relationship 'rel' with 'color1' or the list of colors that have the relationship 'rel' with color1 and color2
         :param rel: type of relationship ('a' = anticlockwise, 'c' = clockwise, 'o' = opposite)
@@ -193,45 +195,45 @@ class Cube:
         self.conn = {
             # connect the front face with the adjacent ones
             Face.FRONT: {
-                Dir.UP: Connection(face=Face.UP, direct=Dir.UP, invert=False),
-                Dir.DOWN: Connection(face=Face.DOWN, direct=Dir.DOWN, invert=False),
-                Dir.LEFT: Connection(face=Face.LEFT, direct=Dir.LEFT, invert=False),
-                Dir.RIGHT: Connection(face=Face.RIGHT, direct=Dir.RIGHT, invert=False),
+                Dir.UP: Connection(face=Face.UP, direct=Dir.UP, invert=False, transpose=False),
+                Dir.DOWN: Connection(face=Face.DOWN, direct=Dir.DOWN, invert=False, transpose=False),
+                Dir.LEFT: Connection(face=Face.LEFT, direct=Dir.LEFT, invert=False, transpose=False),
+                Dir.RIGHT: Connection(face=Face.RIGHT, direct=Dir.RIGHT, invert=False, transpose=False),
             },
             # connect the upper face with the adjacent ones
             Face.UP: {
-                Dir.UP: Connection(face=Face.BACK, direct=Dir.DOWN, invert=True),
-                Dir.DOWN: Connection(face=Face.FRONT, direct=Dir.DOWN, invert=False),
-                Dir.LEFT: Connection(face=Face.LEFT, direct=Dir.DOWN, invert=False),
-                Dir.RIGHT: Connection(face=Face.RIGHT, direct=Dir.DOWN, invert=True),
+                Dir.UP: Connection(face=Face.BACK, direct=Dir.DOWN, invert=True, transpose=False),
+                Dir.DOWN: Connection(face=Face.FRONT, direct=Dir.DOWN, invert=False, transpose=False),
+                Dir.LEFT: Connection(face=Face.LEFT, direct=Dir.DOWN, invert=False, transpose=True),
+                Dir.RIGHT: Connection(face=Face.RIGHT, direct=Dir.DOWN, invert=True, transpose=True),
             },
             # connect the bottom face with the adjacent ones
             Face.DOWN: {
-                Dir.UP: Connection(face=Face.FRONT, direct=Dir.UP, invert=False),
-                Dir.DOWN: Connection(face=Face.BACK, direct=Dir.UP, invert=True),
-                Dir.LEFT: Connection(face=Face.LEFT, direct=Dir.UP, invert=True),
-                Dir.RIGHT: Connection(face=Face.RIGHT, direct=Dir.UP, invert=False),
+                Dir.UP: Connection(face=Face.FRONT, direct=Dir.UP, invert=False, transpose=False),
+                Dir.DOWN: Connection(face=Face.BACK, direct=Dir.UP, invert=True, transpose=False),
+                Dir.LEFT: Connection(face=Face.LEFT, direct=Dir.UP, invert=True, transpose=True),
+                Dir.RIGHT: Connection(face=Face.RIGHT, direct=Dir.UP, invert=False, transpose=True),
             },
             # connect the back face with the adjacent ones
             Face.BACK: {
-                Dir.UP: Connection(face=Face.UP, direct=Dir.DOWN, invert=True),
-                Dir.DOWN: Connection(face=Face.DOWN, direct=Dir.UP, invert=True),
-                Dir.LEFT: Connection(face=Face.RIGHT, direct=Dir.LEFT, invert=False),
-                Dir.RIGHT: Connection(face=Face.LEFT, direct=Dir.RIGHT, invert=False),
+                Dir.UP: Connection(face=Face.UP, direct=Dir.DOWN, invert=True, transpose=False),
+                Dir.DOWN: Connection(face=Face.DOWN, direct=Dir.UP, invert=True, transpose=False),
+                Dir.LEFT: Connection(face=Face.RIGHT, direct=Dir.LEFT, invert=False, transpose=False),
+                Dir.RIGHT: Connection(face=Face.LEFT, direct=Dir.RIGHT, invert=False, transpose=False),
             },
             # connect the left face with the adjacent ones
             Face.LEFT: {
-                Dir.UP: Connection(face=Face.UP, direct=Dir.RIGHT, invert=False),
-                Dir.DOWN: Connection(face=Face.DOWN, direct=Dir.RIGHT, invert=True),
-                Dir.LEFT: Connection(face=Face.BACK, direct=Dir.LEFT, invert=False),
-                Dir.RIGHT: Connection(face=Face.FRONT, direct=Dir.RIGHT, invert=False),
+                Dir.UP: Connection(face=Face.UP, direct=Dir.RIGHT, invert=False, transpose=True),
+                Dir.DOWN: Connection(face=Face.DOWN, direct=Dir.RIGHT, invert=True, transpose=True),
+                Dir.LEFT: Connection(face=Face.BACK, direct=Dir.LEFT, invert=False, transpose=False),
+                Dir.RIGHT: Connection(face=Face.FRONT, direct=Dir.RIGHT, invert=False, transpose=False),
             },
             # connect the right face with the adjacent ones
             Face.RIGHT: {
-                Dir.UP: Connection(face=Face.UP, direct=Dir.LEFT, invert=True),
-                Dir.DOWN: Connection(face=Face.DOWN, direct=Dir.LEFT, invert=False),
-                Dir.LEFT: Connection(face=Face.FRONT, direct=Dir.LEFT, invert=False),
-                Dir.RIGHT: Connection(face=Face.BACK, direct=Dir.RIGHT, invert=False),
+                Dir.UP: Connection(face=Face.UP, direct=Dir.LEFT, invert=True, transpose=True),
+                Dir.DOWN: Connection(face=Face.DOWN, direct=Dir.LEFT, invert=False, transpose=True),
+                Dir.LEFT: Connection(face=Face.FRONT, direct=Dir.LEFT, invert=False, transpose=False),
+                Dir.RIGHT: Connection(face=Face.BACK, direct=Dir.RIGHT, invert=False, transpose=False),
             },
         }
 
@@ -407,77 +409,83 @@ class Cube:
                 direction = (-direction[0], -direction[1])
             self.oneMove(face, span, direction, times)
 
-    def readWriteCeldas(self, face, span, direction, set=False, tiles=[], celdasMovidas=False):
-        # - Lee (y eventualmente reemplaza) un rango de celdas de la matriz de una cara del cube
-        # - rango: es una tupla (desde,hasta) ordenada, es decir que si esta en orden inverso, las celdas se leeran tambien en orden inverso
-        # - direc: es la direccion del movimiento, si es arriba o abajo, el rango es de columnas (se toman entonces todas las filas)
-        #          si direc es derecha o izquierda el rango es de filas y se toman todas las columnas
-        # - set: indica si se graban en el lugar de las celdas leidas, las de la lista celdas
-        # - celdas: (solo si quiero grabar), son las celdas que reemplazaran a las leidas
-        # - celdasMovidas: si se pasa como parametro un objeto tipo lista, se agrega a esa lista la direccion (cara, fila, columna) de las celdas
-        #                  que se estan moviendo. Para uso de los modulos graficos (por si quiero mostrar las celdas en movimiento)
-        # - Devuelve una matriz con el contenido de las celdas del rango especificado.
-        step = -1 if span[0] > span[1] else 1
-        if direction == Dir.RIGHT:
-            r, c = span[0], 0
-            rr, rc = step, 0
-        elif direction == Dir.LEFT:
-            r, c = span[0], self.n - 1
-            rr, rc = step, 0
-        elif direction == Dir.DOWN:
-            r, c = 0, span[0]
-            rr, rc = 0, step
-        elif direction == Dir.UP:
-            r, c = self.n - 1, span[0]
-            rr, rc = 0, step
-        ret = []
-        while (0 <= r < self.n) and (0 <= c < self.n):
-            rrr = []
-            for xx in range(abs(span[1] - span[0]) + 1):
-                rrr.append(self.faces[face][r + xx * rr, c + xx * rc])
-            ret.append(rrr)
-            if set:
-                for xx in range(abs(span[1] - span[0]) + 1):
-                    self.faces[face][r + xx * rr, c + xx * rc] = tiles[len(ret) - 1, xx]
-                if type(celdasMovidas) == list:
-                    for xx in range(abs(span[1] - span[0]) + 1):
-                        celdasMovidas.append((face, r + xx * rr, c + xx * rc))
-            r, c = r + direction[0], c + direction[1]
-        return np.array(ret)
+    def readWriteTiles(self, face, span, direction, tiles=None, changedTiles=None):
+        """
+        Reads (and optionally replaces) a range of tiles from the matrix of a cube face.
 
-    def oneMove(self, idCara, rango, direc, multip=1, celdasMovidas=False):
-        for _ in range(multip):
-            # Hace un movimiento del cube (solo hace movimientos para direccciones 'udlr')
-            face, rr, dd = idCara, rango, direc
-            # copiar el sector de celdas dado por rango y direc, en las distintas caras del cube, rotando 4 veces en direccion direc
-            celdas = self.readWriteCeldas(face, rr, dd)
+        :param face: The face where the tiles to read/replace are located.
+        :param span: If the direction is vertical, the range of columns; if horizontal, the range of rows to read/replace.
+                     The dimension not taken as a range is read/replaced completely.
+        :param direction: Direction of the movement (Dir.UP, Dir.DOWN, Dir.LEFT, Dir.RIGHT).
+        :param tiles: (optional) Tiles that will replace the ones determined by the span and direction.
+        :param changedTiles: (optional) If a list object is provided, tuples (face, row, column) of all modified tiles
+                             are added to this list.
+        :return: Returns a matrix with the read tiles.
+        """
+        span_step = -1 if span[0] > span[1] else 1
+        span_slice = slice(span[0], span[1] + span_step if span[1] or span_step != -1 else None, span_step)
+        if direction[0] == 0:  # LEFT or RIGHT
+            rows = span_slice
+            cols = slice(None, None, direction[1])
+        else:  # UP or DOWN
+            rows = slice(None, None, direction[0])
+            cols = span_slice
+        ret = self.faces[face][rows, cols].copy()
+        if tiles is not None:
+            self.faces[face][rows, cols] = tiles
+            if changedTiles is not None:
+                changedTiles.extend(
+                    (face, r, c) for r in range(*rows.indices(self.n)) for c in range(*cols.indices(self.n))
+                )
+        return ret
+
+    def oneMove(self, face, span, direction, times=1, changedTiles=None):
+        """
+        Performs a move on the cube. The move is determined by a face, a range of rows/columns, and a direction.
+
+        :param face: The base face from which the move originates.
+        :param span: The range of rows/columns that will be moved.
+        :param direction: The direction of the move (Dir.UP, Dir.DOWN, Dir.LEFT, Dir.RIGHT).
+        :param times: The number of times to repeat the move.
+        :param changedTiles: (optional) If a list object is provided, tuples (face, row, column) of all modified tiles
+                             are added to this list.
+        """
+        for _ in range(times):
+            ff, sp, dd = face, span, direction
+
+            # copy the cell sector determined by 'span' and 'direction', on the different faces of the cube,
+            # rotating 4 times in the given direction
+            tiles = self.readWriteTiles(ff, sp, dd)
             for _ in range(4):
-                conn = self.conn[face][dd]
-                face, dd = conn.face, conn.direct
+                conn = self.conn[ff][dd]
+                ff, dd = conn.face, conn.direct
                 if conn.invert:
-                    rr = (self.n - rr[0] - 1, self.n - rr[1] - 1)
-                celdas = self.readWriteCeldas(face, rr, dd, set=True, tiles=celdas, celdasMovidas=celdasMovidas)
-            # cuando el rango incluye uno o ambos bordes rotar la(s) cara(s) lateral(es), en sentido horario o antihorario
-            if min(rango) == 0:
-                if (direc == Dir.RIGHT) or (direc == Dir.LEFT):
-                    face = self.conn[idCara][Dir.UP].face
-                    dirRotacion = 1 if direc == Dir.RIGHT else 3  # 1 = antihorario, 3 = horario
+                    sp = (self.n - sp[0] - 1, self.n - sp[1] - 1)
+                if conn.transpose:
+                    tiles = tiles.T
+                tiles = self.readWriteTiles(ff, sp, dd, tiles=tiles, changedTiles=changedTiles)
+
+            # When the range includes one or both edges, rotate the side faces, clockwise or anticlockwise.
+            if min(span) == 0:
+                if (direction == Dir.RIGHT) or (direction == Dir.LEFT):
+                    ff = self.conn[face][Dir.UP].face
+                    rotDir = 1 if direction == Dir.RIGHT else 3  # 1 = anticlockwise, 3 = clockwise
                 else:  # (direc == Dir.UP) or (direc == Dir.DOWN)
-                    face = self.conn[idCara][Dir.LEFT].face
-                    dirRotacion = 1 if direc == Dir.UP else 3  # 1 = antihorario, 3 = horario
-                self.faces[face] = np.rot90(self.faces[face], dirRotacion)
-                if isinstance(celdasMovidas, list):
-                    celdasMovidas.extend([(face, r, c) for r in range(self.n) for c in range(self.n)])
-            if max(rango) == self.n - 1:
-                if (direc == Dir.RIGHT) or (direc == Dir.LEFT):
-                    face = self.conn[idCara][Dir.DOWN].face
-                    dirRotacion = 1 if direc == Dir.LEFT else 3  # 1 = antihorario, 3 = horario
+                    ff = self.conn[face][Dir.LEFT].face
+                    rotDir = 1 if direction == Dir.UP else 3  # 1 = anticlockwise, 3 = clockwise
+                self.faces[ff] = np.rot90(self.faces[ff], rotDir)
+                if changedTiles is not None:
+                    changedTiles.extend([(ff, r, c) for r in range(self.n) for c in range(self.n)])
+            if max(span) == self.n - 1:
+                if (direction == Dir.RIGHT) or (direction == Dir.LEFT):
+                    ff = self.conn[face][Dir.DOWN].face
+                    rotDir = 1 if direction == Dir.LEFT else 3  # 1 = anticlockwise, 3 = clockwise
                 else:  # (direc == Dir.UP) or (direc == Dir.DOWN)
-                    face = self.conn[idCara][Dir.RIGHT].face
-                    dirRotacion = 1 if direc == Dir.DOWN else 3  # 1 = antihorario, 3 = horario
-                self.faces[face] = np.rot90(self.faces[face], dirRotacion)
-                if isinstance(celdasMovidas, list):
-                    celdasMovidas.extend([(face, r, c) for r in range(self.n) for c in range(self.n)])
+                    ff = self.conn[face][Dir.RIGHT].face
+                    rotDir = 1 if direction == Dir.DOWN else 3  # 1 = anticlockwise, 3 = clockwise
+                self.faces[ff] = np.rot90(self.faces[ff], rotDir)
+                if changedTiles is not None:
+                    changedTiles.extend([(ff, r, c) for r in range(self.n) for c in range(self.n)])
 
     def vecina(self, face, coord, direc):
         '''Devuelve el contenido de la celda vecina en la face vecina'''

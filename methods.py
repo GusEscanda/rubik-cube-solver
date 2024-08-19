@@ -126,7 +126,7 @@ def matchCelda(vars, coloresPosibles, colorRel, colorCelda):
             c1, c2 = firstAndRest(color[2:], ',')
             c1 = vars.get(c1, default='')
             c2 = vars.get(c2, default='')
-            color = colorRel.listCols(color[0], c1, c2)
+            color = colorRel.listColors(color[0], c1, c2)
         if debeCoincidir == (colorCelda in color):  # si (debeCoincidir y coincide) o (no debeCoincidir y no coincide)
             mCelda = True
             break
