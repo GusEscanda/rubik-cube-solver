@@ -8,26 +8,90 @@ from util import stripWords, firstAndRest, Vars
 class Dir:
     """
     Holds some constants and methods to manage the direction of the movements in a cube
-    Each face is an array with n by n tiles, numbered from 0 to n-1, (0, 0) is the top-left corner
+    Each face is an array with n by n tiles, numbered from 0 to n-1, (0, 0) is the top-left corner,
+    the direction is determined by the row step and column step, each one could be -1, 0 or 1 and these steps
+    are used to scan the face arrays
     """
-    UP = (-1, 0)  # ( row offset, column offset )
-    DOWN = (1, 0)
-    RIGHT = (0, 1)
-    LEFT = (0, -1)
-    NULL = (0, 0)
-    _OFFSETS = {'u': UP, 'd': DOWN, 'r': RIGHT, 'l': LEFT, '0': NULL}
+    UP = 'u'
+    DOWN = 'd'
+    RIGHT = 'r'
+    LEFT = 'l'
+    NULL = '0'
+    _OFFSETS = {UP: (-1, 0), DOWN: (1, 0), RIGHT: (0, 1), LEFT: (0, -1), NULL: (0, 0)}
     _DIRECTION = {v: k for k, v in _OFFSETS.items()}
 
-    @staticmethod
-    def offset(direction):
-        return Dir._OFFSETS[direction.lower()]
+    def __init__(self, d):
+        self.id = d.lower()
+        self.row, self.col = Dir._OFFSETS[self.id]
 
-    @staticmethod
-    def dir(offset):
-        return Dir._DIRECTION[offset]
+    def __repr__(self):
+        return self.id
+
+    def invert(self):
+        self.row = -self.row
+        self.col = -self.col
+        self.id = Dir._DIRECTION[(self.row, self.col)]
+        return self
+
+    def swap(self):
+        self.row, self.col = self.col, self.row
+        self.id = Dir._DIRECTION[(self.row, self.col)]
+        return self
+
+    def horizontal(self):
+        return self.col != 0
+
+    def vertical(self):
+        return self.row != 0
 
 
-# Faces of the cube
+class Span:
+    """
+    Holds the limits (beg/end) of a sector of tiles to move or to compare
+    """
+    def __init__(self, cube, sRange="", checkLimits=True):
+        """
+        Converts a string that represents a range of rows/columns to move into a tuple begin, end
+        :param sRange: string containing a range with the form <begin>[:<end>] where <begin> and <end> can be just
+                       numbers, logic coordinates like "T" for top, "C" for center, etc. or any arithmetic operation
+                       using them
+        :param checkLimits: True if it's necessary to check if <begin> and <end> are between 0 and n-1
+        :return: (<begin>, <end>) tuple
+        """
+        if sRange == "":
+            beg, end = 0, cube.n - 1
+        elif ':' in sRange:
+            beg, end = sRange.split(':')
+            beg = eval(beg, cube.vars.vars()) - 1
+            end = eval(end, cube.vars.vars()) - 1
+            if beg > end:
+                beg, end = end, beg
+        else:
+            beg = eval(sRange, cube.vars.vars()) - 1
+            end = beg
+        if checkLimits:
+            beg = 0 if beg < 0 else cube.n - 1 if beg >= cube.n else beg
+            end = 0 if end < 0 else cube.n - 1 if end >= cube.n else end
+        self.cube = cube
+        self.beg = beg
+        self.end = end
+
+    def __repr__(self):
+        return f'{self.beg + 1}:{self.end + 1}'
+
+    def invert(self):
+        self.beg, self.end = (self.cube.n - 1 - self.end, self.cube.n - 1 - self.beg)
+        return self
+
+    def swap(self):
+        self.beg, self.end = self.end, self.beg
+        return self
+
+    def slice(self):
+        step = -1 if self.beg > self.end else 1
+        return slice(self.beg, self.end + step if self.end or step != -1 else None, step)
+
+
 class Face:
     """
     Constants to hold the one-char code name of the faces and the names of the colors of each face
@@ -154,6 +218,138 @@ class ColorRel:
         return list(d.keys())
 
 
+class Move:
+    # """
+    # Holds tha data to make a cube's move
+    # :param face: The base face from which the move originates.
+    # :param span: The range of rows/columns that will be moved.
+    # :param direction: The direction of the move (Dir.UP, Dir.DOWN, Dir.LEFT, Dir.RIGHT).
+    # :param times: The number of times to repeat the move.
+    # """
+
+    def __init__(self, cube, mov):
+        # """
+        # Converts a string 'mov' into a Move object to call the method 'oneMove'
+        # The string 'mov' can follow standard Rubik's notation (F, B, U, D, L, R, M, E, S, x, y, z, lowercase letters, w, ', 2)
+        # or be in the form <face>[.<span start>[:<span end>]].[<times>]<direction> where:
+        #
+        # <face> = "F", "B", "U", "D", "L", or "R"
+        # <span start> and <span end> = row/column numbers to move (start and end are inclusive)
+        #     - Explicit numbers indicate rows/columns counted from the top/left
+        #     - The numbering goes from 1 to self.n
+        #     - 'T' or 'L' (Top/Left) indicate the 1st row/column (equivalent to 1)
+        #     - 't' or 'l' (top/left) indicate the 2nd row/column (equivalent to 2)
+        #     - 'B' or 'R' (Bottom/Right) indicate the last row/column
+        #     - 'b' or 'r' (bottom/right) indicate the second-to-last row/column
+        #     - 'c' or 'C' (Center) indicate the middle row/column
+        #         - On odd-sized cubes, c and C are equivalent
+        #         - On even-sized cubes, c and C represent the smaller and larger of the two central rows/columns
+        #     - After TLtlBRbrcC, you can add or subtract a number
+        #         e.g.: T+1 is equivalent to t, B-1 is equivalent to b, t+1 is the 3rd row
+        #     - For symmetry purposes, T and L (as well as B and R) are equivalent and included only to clarify the movement notation.
+        #       The direction of the movement is determined ONLY by the “direction” field.
+        #     - The order of <span start> and <span end> is interchangeable (2:5 is equivalent to 5:2)
+        #
+        # <times> = number of times the move is repeated (digit, optional)
+        #     - A multiplier can be prefixed to the direction letter, indicating how many times the move should be performed
+        #     - 1: default, 2: the most logical to use, 3: rare (equivalent to 1 in the opposite direction), >3: ridiculous
+        #
+        # <direction> = "u", "d", "l", "r", "c", "a" for up, down, left, right, clockwise, and anticlockwise
+        #     - If the direction is clockwise or anticlockwise, <span start>:<span end> is omitted/ignored
+        #
+        # Any move that begins with "><" is considered mirrored with respect to a plane defined by the Z and Y axes.
+        #
+        # :param mov: the string with the move to perform, coded as explained above
+        # :return: (face, span, direction, times) tuple
+        # """
+        mm = mov
+        face, span, direction, times = '', Span(cube), Dir(Dir.NULL), 0
+
+        mirror = False
+        if mm[0:2] == '><':
+            mirror = True  # remember that I'm in mirror mode, take this in account just before the end
+            mm = mm[2:]
+
+        if '.' in mm:  # mov is in the form <face>[.<span start>[:<span end>]].[<times>]<direction>
+            face, mm = firstAndRest(mm, '.')
+            face = face.upper()
+            span.beg, span.end = (1, 1)  # default value
+            if '.' in mm:  # there is an explicit span
+                ss, mm = firstAndRest(mm, '.')
+                span = Span(cube, ss)
+            times = 1
+            if mm[0] in '123456789':  # there is an explicit multiplier
+                times, mm = int(mm[:1]), mm[1:]
+            mm = mm[:1]
+            if mm in 'udlrUDLR':
+                direction = Dir(mm)
+                mm = ''  # I don't have to process mm anymore, I have all the data to return
+            else:  # mm in 'caCA' (clockwise o anticlockwise) => use a standard Rubik's movement
+                mm = face + str(times) + ("'" if mm in 'aA' else "")
+
+        if mm:  # mm is a standard Rubik's movement (F, B, U, D, L, R, M, E, S, x, y, z, lowercase letters, w, ', 2)
+            face = mm[0]
+            mm = mm[1:]
+            if mm:
+                if mm[0] in 'wW':  # w notation -> lowercase notation
+                    face = face.lower()
+                    mm = mm[1:]
+            anti = ("'" in mm)  # anticlockwise
+            mm = mm[:mm.find("'")] + mm[mm.find("'") + 1:]  # remove the ' leaving only the number if there is one
+            times = (1 if not mm else int(mm))  # If there is still a number, that is the multiplier, if not, 1 is default
+
+            span = Span(cube)
+            if face in Face.FACES.upper():
+                span.beg, span.end = (0, 0)
+            elif face in Face.FACES.lower():
+                # In cubes > 3x3, it is logical to consider the entire central block (move everything except the opposite face)
+                span.beg, span.end = (0, cube.n - 2)
+            elif face in 'MESmes':  # m e s (lowercase) does not make sense but for simplicity I make it equivalent to M E S
+                # central block without the side faces
+                span.beg, span.end = (1, cube.n - 2)
+            elif face in 'XYZxyz':  # X Y Z, I make it equivalent to x y z (this is usually used in upper and lower interchangeably)
+                # full range, change the orientation of the cube
+                span.beg, span.end = (0, cube.n - 1)
+
+            f, direction = '', Dir(Dir.NULL)
+            if face in "FfSsZz":
+                f, direction = Face.RIGHT, Dir(Dir.DOWN)
+            elif face in "Bb":
+                f, direction = Face.LEFT, Dir(Dir.DOWN)
+            elif face in "LlMm":
+                f, direction = Face.FRONT, Dir(Dir.DOWN)
+            elif face in "RrXx":
+                f, direction = Face.BACK, Dir(Dir.DOWN)
+            elif face in "UuYy":
+                f, direction = Face.FRONT, Dir(Dir.LEFT)
+            elif face in "DdEe":
+                f, direction = Face.FRONT, Dir(Dir.RIGHT)
+                # Only in the case of looking from below, I invert the range selection
+                span.invert()
+            face = f
+            if anti:  # Anticlockwise => reverse the direction
+                direction.invert()
+
+        if mirror:
+            if face == Face.RIGHT:
+                face = Face.LEFT
+            elif face == Face.LEFT:
+                face = Face.RIGHT
+            if direction.vertical():  # UP or DOWN
+                span.invert()
+            elif direction.horizontal():  # LEFT or RIGHT
+                direction.invert()
+
+        self.cube = cube
+        self.face = face
+        self.span = span
+        self.direction = direction
+        self.times = times
+
+    def __repr__(self):
+        return f'{self.face}.{self.span}.{self.times if self.times != 1 else ""}{self.direction}'
+
+
 class Cube:
     def __init__(self, size=3, white=False):
         """
@@ -195,45 +391,45 @@ class Cube:
         self.conn = {
             # connect the front face with the adjacent ones
             Face.FRONT: {
-                Dir.UP: Connection(face=Face.UP, direct=Dir.UP, invert=False, transpose=False),
-                Dir.DOWN: Connection(face=Face.DOWN, direct=Dir.DOWN, invert=False, transpose=False),
-                Dir.LEFT: Connection(face=Face.LEFT, direct=Dir.LEFT, invert=False, transpose=False),
-                Dir.RIGHT: Connection(face=Face.RIGHT, direct=Dir.RIGHT, invert=False, transpose=False),
+                Dir.UP: Connection(face=Face.UP, direct=Dir(Dir.UP), invert=False, transpose=False),
+                Dir.DOWN: Connection(face=Face.DOWN, direct=Dir(Dir.DOWN), invert=False, transpose=False),
+                Dir.LEFT: Connection(face=Face.LEFT, direct=Dir(Dir.LEFT), invert=False, transpose=False),
+                Dir.RIGHT: Connection(face=Face.RIGHT, direct=Dir(Dir.RIGHT), invert=False, transpose=False),
             },
             # connect the upper face with the adjacent ones
             Face.UP: {
-                Dir.UP: Connection(face=Face.BACK, direct=Dir.DOWN, invert=True, transpose=False),
-                Dir.DOWN: Connection(face=Face.FRONT, direct=Dir.DOWN, invert=False, transpose=False),
-                Dir.LEFT: Connection(face=Face.LEFT, direct=Dir.DOWN, invert=False, transpose=True),
-                Dir.RIGHT: Connection(face=Face.RIGHT, direct=Dir.DOWN, invert=True, transpose=True),
+                Dir.UP: Connection(face=Face.BACK, direct=Dir(Dir.DOWN), invert=True, transpose=False),
+                Dir.DOWN: Connection(face=Face.FRONT, direct=Dir(Dir.DOWN), invert=False, transpose=False),
+                Dir.LEFT: Connection(face=Face.LEFT, direct=Dir(Dir.DOWN), invert=False, transpose=True),
+                Dir.RIGHT: Connection(face=Face.RIGHT, direct=Dir(Dir.DOWN), invert=True, transpose=True),
             },
             # connect the bottom face with the adjacent ones
             Face.DOWN: {
-                Dir.UP: Connection(face=Face.FRONT, direct=Dir.UP, invert=False, transpose=False),
-                Dir.DOWN: Connection(face=Face.BACK, direct=Dir.UP, invert=True, transpose=False),
-                Dir.LEFT: Connection(face=Face.LEFT, direct=Dir.UP, invert=True, transpose=True),
-                Dir.RIGHT: Connection(face=Face.RIGHT, direct=Dir.UP, invert=False, transpose=True),
+                Dir.UP: Connection(face=Face.FRONT, direct=Dir(Dir.UP), invert=False, transpose=False),
+                Dir.DOWN: Connection(face=Face.BACK, direct=Dir(Dir.UP), invert=True, transpose=False),
+                Dir.LEFT: Connection(face=Face.LEFT, direct=Dir(Dir.UP), invert=True, transpose=True),
+                Dir.RIGHT: Connection(face=Face.RIGHT, direct=Dir(Dir.UP), invert=False, transpose=True),
             },
             # connect the back face with the adjacent ones
             Face.BACK: {
-                Dir.UP: Connection(face=Face.UP, direct=Dir.DOWN, invert=True, transpose=False),
-                Dir.DOWN: Connection(face=Face.DOWN, direct=Dir.UP, invert=True, transpose=False),
-                Dir.LEFT: Connection(face=Face.RIGHT, direct=Dir.LEFT, invert=False, transpose=False),
-                Dir.RIGHT: Connection(face=Face.LEFT, direct=Dir.RIGHT, invert=False, transpose=False),
+                Dir.UP: Connection(face=Face.UP, direct=Dir(Dir.DOWN), invert=True, transpose=False),
+                Dir.DOWN: Connection(face=Face.DOWN, direct=Dir(Dir.UP), invert=True, transpose=False),
+                Dir.LEFT: Connection(face=Face.RIGHT, direct=Dir(Dir.LEFT), invert=False, transpose=False),
+                Dir.RIGHT: Connection(face=Face.LEFT, direct=Dir(Dir.RIGHT), invert=False, transpose=False),
             },
             # connect the left face with the adjacent ones
             Face.LEFT: {
-                Dir.UP: Connection(face=Face.UP, direct=Dir.RIGHT, invert=False, transpose=True),
-                Dir.DOWN: Connection(face=Face.DOWN, direct=Dir.RIGHT, invert=True, transpose=True),
-                Dir.LEFT: Connection(face=Face.BACK, direct=Dir.LEFT, invert=False, transpose=False),
-                Dir.RIGHT: Connection(face=Face.FRONT, direct=Dir.RIGHT, invert=False, transpose=False),
+                Dir.UP: Connection(face=Face.UP, direct=Dir(Dir.RIGHT), invert=False, transpose=True),
+                Dir.DOWN: Connection(face=Face.DOWN, direct=Dir(Dir.RIGHT), invert=True, transpose=True),
+                Dir.LEFT: Connection(face=Face.BACK, direct=Dir(Dir.LEFT), invert=False, transpose=False),
+                Dir.RIGHT: Connection(face=Face.FRONT, direct=Dir(Dir.RIGHT), invert=False, transpose=False),
             },
             # connect the right face with the adjacent ones
             Face.RIGHT: {
-                Dir.UP: Connection(face=Face.UP, direct=Dir.LEFT, invert=True, transpose=True),
-                Dir.DOWN: Connection(face=Face.DOWN, direct=Dir.LEFT, invert=False, transpose=True),
-                Dir.LEFT: Connection(face=Face.FRONT, direct=Dir.LEFT, invert=False, transpose=False),
-                Dir.RIGHT: Connection(face=Face.BACK, direct=Dir.RIGHT, invert=False, transpose=False),
+                Dir.UP: Connection(face=Face.UP, direct=Dir(Dir.LEFT), invert=True, transpose=True),
+                Dir.DOWN: Connection(face=Face.DOWN, direct=Dir(Dir.LEFT), invert=False, transpose=True),
+                Dir.LEFT: Connection(face=Face.FRONT, direct=Dir(Dir.LEFT), invert=False, transpose=False),
+                Dir.RIGHT: Connection(face=Face.BACK, direct=Dir(Dir.RIGHT), invert=False, transpose=False),
             },
         }
 
@@ -248,145 +444,7 @@ class Cube:
             for r in range(self.n):
                 for c in range(self.n):
                     self.faces[face][r, c].color = Face.COLOR[face] if not self.white else 'white'
-                    self.faces[face][r, c].id = face + ('000' + str(r + 1))[-3:] + ('000' + str(c + 1))[-3:]
-
-    def str2span(self, sRange, checkLimits=True):
-        """
-        Converts a string that represents a range of rows/columns to move into a tuple begin, end
-        :param sRange: string containing a range with the form <begin>[:<end>] where <begin> and <end> can be just
-                       numbers, logic coordinates like "T" for top, "C" for center, etc. or any arithmetic operation
-                       using them
-        :param checkLimits: True if it's necessary to check if <begin> and <end> are between 0 and n-1
-        :return: (<begin>, <end>) tuple
-        """
-        if ':' in sRange:
-            beg, end = sRange.split(':')
-            beg = eval(beg, self.vars.vars()) - 1
-            end = eval(end, self.vars.vars()) - 1
-            if beg > end:
-                beg, end = end, beg
-        else:
-            beg = eval(sRange, self.vars.vars()) - 1
-            end = beg
-        if checkLimits:
-            beg = 0 if beg < 0 else self.n - 1 if beg >= self.n else beg
-            end = 0 if end < 0 else self.n - 1 if end >= self.n else end
-        return beg, end
-
-    def str2move(self, mov):
-        """
-        Converts a string 'mov' into a tuple (face, span, direction, times) to call the method 'oneMove' <times> times.
-        The string 'mov' can follow standard Rubik's notation (F, B, U, D, L, R, M, E, S, x, y, z, lowercase letters, w, ', 2)
-        or be in the form <face>[.<span start>[:<span end>]].[<times>]<direction> where:
-
-        <face> = "F", "B", "U", "D", "L", or "R"
-        <span start> and <span end> = row/column numbers to move (start and end are inclusive)
-            - Explicit numbers indicate rows/columns counted from the top/left
-            - The numbering goes from 1 to self.n
-            - 'T' or 'L' (Top/Left) indicate the 1st row/column (equivalent to 1)
-            - 't' or 'l' (top/left) indicate the 2nd row/column (equivalent to 2)
-            - 'B' or 'R' (Bottom/Right) indicate the last row/column
-            - 'b' or 'r' (bottom/right) indicate the second-to-last row/column
-            - 'c' or 'C' (Center) indicate the middle row/column
-                - On odd-sized cubes, c and C are equivalent
-                - On even-sized cubes, c and C represent the smaller and larger of the two central rows/columns
-            - After TLtlBRbrcC, you can add or subtract a number
-                e.g.: T+1 is equivalent to t, B-1 is equivalent to b, t+1 is the 3rd row
-            - For symmetry purposes, T and L (as well as B and R) are equivalent and included only to clarify the movement notation.
-              The direction of the movement is determined ONLY by the “direction” field.
-            - The order of <span start> and <span end> is interchangeable (2:5 is equivalent to 5:2)
-
-        <times> = number of times the move is repeated (digit, optional)
-            - A multiplier can be prefixed to the direction letter, indicating how many times the move should be performed
-            - 1: default, 2: the most logical to use, 3: rare (equivalent to 1 in the opposite direction), >3: ridiculous
-
-        <direction> = "u", "d", "l", "r", "c", "a" for up, down, left, right, clockwise, and anticlockwise
-            - If the direction is clockwise or anticlockwise, <span start>:<span end> is omitted/ignored
-
-        Any move that begins with "><" is considered mirrored with respect to a plane defined by the Z and Y axes.
-
-        :param mov: the string with the move to perform, coded as explained above
-        :return: (face, span, direction, times) tuple
-        """
-        mm = mov
-        face, span, direction, times = '', (0, 0), Dir.NULL, 0
-
-        mirror = False
-        if mm[0:2] == '><':
-            mirror = True  # remember that I'm in mirror mode, take this in account just before the end
-            mm = mm[2:]
-
-        if '.' in mm:  # mov is in the form <face>[.<span start>[:<span end>]].[<times>]<direction>
-            face, mm = firstAndRest(mm, '.')
-            face = face.upper()
-            span = (1, 1)  # default value
-            if '.' in mm:  # there is an explicit span
-                span, mm = firstAndRest(mm, '.')
-                span = self.str2span(span)
-            times = 1
-            if mm[0] in '123456789':  # there is an explicit multiplier
-                times, mm = int(mm[:1]), mm[1:]
-            mm = mm[:1]
-            if mm in 'udlrUDLR':
-                direction = Dir.offset(mm)
-                mm = ''  # I don't have to process mm anymore, I have all the data to return
-            else:  # mm in 'caCA' (clockwise o anticlockwise) => use a standard Rubik's movement
-                mm = face + str(times) + ("'" if mm in 'aA' else "")
-
-        if mm:  # mm is a standard Rubik's movement (F, B, U, D, L, R, M, E, S, x, y, z, lowercase letters, w, ', 2)
-            face = mm[0]
-            mm = mm[1:]
-            if mm:
-                if mm[0] in 'wW':  # w notation -> lowercase notation
-                    face = face.lower()
-                    mm = mm[1:]
-            anti = ("'" in mm)  # anticlockwise
-            mm = mm[:mm.find("'")] + mm[mm.find("'") + 1:]  # remove the ' leaving only the number if there is one
-            times = (1 if not mm else int(mm))  # If there is still a number, that is the multiplier, if not, 1 is default
-
-            span = (0, 0)
-            if face in Face.FACES.upper():
-                span = (0, 0)
-            elif face in Face.FACES.lower():
-                # In cubes > 3x3, it is logical to consider the entire central block (move everything except the opposite face)
-                span = (0, self.n - 2)
-            elif face in 'MESmes':  # m e s (lowercase) does not make sense but for simplicity I make it equivalent to M E S
-                # central block without the side faces
-                span = (1, self.n - 2)
-            elif face in 'XYZxyz':  # X Y Z, I make it equivalent to x y z (this is usually used in upper and lower interchangeably)
-                # full range, change the orientation of the cube
-                span = (0, self.n - 1)
-
-            f, direction = '', ''
-            if face in "FfSsZz":
-                f, direction = Face.RIGHT, Dir.DOWN
-            elif face in "Bb":
-                f, direction = Face.LEFT, Dir.DOWN
-            elif face in "LlMm":
-                f, direction = Face.FRONT, Dir.DOWN
-            elif face in "RrXx":
-                f, direction = Face.BACK, Dir.DOWN
-            elif face in "UuYy":
-                f, direction = Face.FRONT, Dir.LEFT
-            elif face in "DdEe":
-                f, direction = Face.FRONT, Dir.RIGHT
-                # Only in the case of looking from below, I invert the range selection
-                span = (self.n - 1 - span[1], self.n - 1 - span[0])
-            face = f
-            if anti:  # Anticlockwise => reverse the direction
-                direction = (-direction[0], -direction[1])
-
-        if mirror:
-            if face == Face.RIGHT:
-                face = Face.LEFT
-            elif face == Face.LEFT:
-                face = Face.RIGHT
-            if direction == Dir.UP or direction == Dir.DOWN:
-                span = (self.n - 1 - span[1], self.n - 1 - span[0])
-            elif direction == Dir.LEFT or direction == Dir.RIGHT:
-                direction = (-direction[0], -direction[1])
-
-        return face, span, direction, times
+                    self.faces[face][r, c].id = f'{face}.{r+1}.{c+1}'
 
     def makeMoves(self, sMoves, backwards=False):
         """
@@ -398,38 +456,36 @@ class Cube:
         if backwards:
             moves.reverse()
         mirror = ''
-        for mov in moves:
-            if mov == '><':
+        for m in moves:
+            if m == '><':
                 mirror = '><' if mirror == '' else ''
                 continue
-            if mov == '-':
+            if m == '-':
                 continue
-            face, span, direction, times = self.str2move(mirror + mov)
+            move = Move(cube=self, mov=mirror + m)
             if backwards:
-                direction = (-direction[0], -direction[1])
-            self.oneMove(face, span, direction, times)
+                move.direction.invert()
+            self.oneMove(move)
 
-    def readWriteTiles(self, face, span, direction, tiles=None, changedTiles=None):
+    def readWriteTiles(self, face, span: Span, direction: Dir, tiles=None, changedTiles=None):
         """
         Reads (and optionally replaces) a range of tiles from the matrix of a cube face.
 
         :param face: The face where the tiles to read/replace are located.
         :param span: If the direction is vertical, the range of columns; if horizontal, the range of rows to read/replace.
                      The dimension not taken as a range is read/replaced completely.
-        :param direction: Direction of the movement (Dir.UP, Dir.DOWN, Dir.LEFT, Dir.RIGHT).
+        :param direction: Direction of the movement
         :param tiles: (optional) Tiles that will replace the ones determined by the span and direction.
         :param changedTiles: (optional) If a list object is provided, tuples (face, row, column) of all modified tiles
                              are added to this list.
         :return: Returns a matrix with the read tiles.
         """
-        span_step = -1 if span[0] > span[1] else 1
-        span_slice = slice(span[0], span[1] + span_step if span[1] or span_step != -1 else None, span_step)
-        if direction[0] == 0:  # LEFT or RIGHT
-            rows = span_slice
-            cols = slice(None, None, direction[1])
+        if direction.horizontal():  # LEFT or RIGHT
+            rows = span.slice()
+            cols = slice(None, None, direction.col)
         else:  # UP or DOWN
-            rows = slice(None, None, direction[0])
-            cols = span_slice
+            rows = slice(None, None, direction.row)
+            cols = span.slice()
         ret = self.faces[face][rows, cols].copy()
         if tiles is not None:
             self.faces[face][rows, cols] = tiles
@@ -439,64 +495,50 @@ class Cube:
                 )
         return ret
 
-    def oneMove(self, face, span, direction, times=1, changedTiles=None):
+    def oneMove(self, move: Move, changedTiles=None):
         """
         Performs a move on the cube. The move is determined by a face, a range of rows/columns, and a direction.
 
-        :param face: The base face from which the move originates.
-        :param span: The range of rows/columns that will be moved.
-        :param direction: The direction of the move (Dir.UP, Dir.DOWN, Dir.LEFT, Dir.RIGHT).
-        :param times: The number of times to repeat the move.
+        :param move: the move to perform
         :param changedTiles: (optional) If a list object is provided, tuples (face, row, column) of all modified tiles
                              are added to this list.
         """
-        for _ in range(times):
-            ff, sp, dd = face, span, direction
+        for _ in range(move.times):
+            ff, sp, dd = move.face, move.span, move.direction
 
             # copy the cell sector determined by 'span' and 'direction', on the different faces of the cube,
             # rotating 4 times in the given direction
             tiles = self.readWriteTiles(ff, sp, dd)
             for _ in range(4):
-                conn = self.conn[ff][dd]
+                conn = self.conn[ff][dd.id]
                 ff, dd = conn.face, conn.direct
                 if conn.invert:
-                    sp = (self.n - sp[0] - 1, self.n - sp[1] - 1)
+                    sp.invert().swap()
                 if conn.transpose:
                     tiles = tiles.T
                 tiles = self.readWriteTiles(ff, sp, dd, tiles=tiles, changedTiles=changedTiles)
 
             # When the range includes one or both edges, rotate the side faces, clockwise or anticlockwise.
-            if min(span) == 0:
-                if (direction == Dir.RIGHT) or (direction == Dir.LEFT):
-                    ff = self.conn[face][Dir.UP].face
-                    rotDir = 1 if direction == Dir.RIGHT else 3  # 1 = anticlockwise, 3 = clockwise
-                else:  # (direc == Dir.UP) or (direc == Dir.DOWN)
-                    ff = self.conn[face][Dir.LEFT].face
-                    rotDir = 1 if direction == Dir.UP else 3  # 1 = anticlockwise, 3 = clockwise
+            if move.span.beg == 0 or move.span.end == 0:
+                if move.direction.horizontal():  # Dir.RIGHT or Dir.LEFT
+                    ff = self.conn[move.face][Dir.UP].face
+                    rotDir = 1 if move.direction.id == Dir.RIGHT else 3  # 1 = anticlockwise, 3 = clockwise
+                else:  # (direction == Dir.UP) or (direction == Dir.DOWN)
+                    ff = self.conn[move.face][Dir.LEFT].face
+                    rotDir = 1 if move.direction.id == Dir.UP else 3  # 1 = anticlockwise, 3 = clockwise
                 self.faces[ff] = np.rot90(self.faces[ff], rotDir)
                 if changedTiles is not None:
                     changedTiles.extend([(ff, r, c) for r in range(self.n) for c in range(self.n)])
-            if max(span) == self.n - 1:
-                if (direction == Dir.RIGHT) or (direction == Dir.LEFT):
-                    ff = self.conn[face][Dir.DOWN].face
-                    rotDir = 1 if direction == Dir.LEFT else 3  # 1 = anticlockwise, 3 = clockwise
-                else:  # (direc == Dir.UP) or (direc == Dir.DOWN)
-                    ff = self.conn[face][Dir.RIGHT].face
-                    rotDir = 1 if direction == Dir.DOWN else 3  # 1 = anticlockwise, 3 = clockwise
+            if move.span.beg == self.n - 1 or move.span.end == self.n - 1:
+                if move.direction.horizontal():  # Dir.RIGHT or Dir.LEFT
+                    ff = self.conn[move.face][Dir.DOWN].face
+                    rotDir = 1 if move.direction.id == Dir.LEFT else 3  # 1 = anticlockwise, 3 = clockwise
+                else:  # (direction == Dir.UP) or (direction == Dir.DOWN)
+                    ff = self.conn[move.face][Dir.RIGHT].face
+                    rotDir = 1 if move.direction.id == Dir.DOWN else 3  # 1 = anticlockwise, 3 = clockwise
                 self.faces[ff] = np.rot90(self.faces[ff], rotDir)
                 if changedTiles is not None:
                     changedTiles.extend([(ff, r, c) for r in range(self.n) for c in range(self.n)])
-
-    def vecina(self, face, coord, direc):
-        '''Devuelve el contenido de la celda vecina en la face vecina'''
-        cxnVecina = self.conn[face][direc]
-        caraVecina = cxnVecina.face
-        xx = {False: coord, True: self.n - coord - 1}[cxnVecina.invert]
-        return {Dir.DOWN: self.faces[caraVecina][0, xx],
-                Dir.UP: self.faces[caraVecina][-1, xx],
-                Dir.RIGHT: self.faces[caraVecina][xx, 0],
-                Dir.LEFT: self.faces[caraVecina][xx, -1]
-                }[cxnVecina.direct]
 
     def anticlockwiseFace(self, face, direction):
         """
@@ -539,103 +581,21 @@ class Cube:
             return None
 
     def shuffle(self, qty=0):
+        """
+        Shuffles the cube with "qty" random moves
+        :param qty: Quantity of random moves to make. Default: 20n (n = the size of the cube)
+        :return: a string with the movements performed
+        """
         moves = []
         if qty <= 0:
             qty = self.n * 20
+        move = Move(self, 'F')
         for _ in range(qty):
-            face = np.random.choice(list(Face.FACES))
-            rrr = (np.random.randint(self.n), np.random.randint(self.n))
-            rrr = (min(rrr), max(rrr))
-            direction = [Dir.UP, Dir.DOWN, Dir.LEFT, Dir.RIGHT][np.random.randint(4)]
-            times = np.random.randint(1, 4)
-            moves.append(f'{face}.{str(rrr[0] + 1)}:{str(rrr[1] + 1)}.{str(times)}{direction}')
-            self.oneMove(face, rrr, direction, times)
+            move.face = np.random.choice(list(Face.FACES))
+            move.span.beg, move.span.end = (np.random.randint(self.n), np.random.randint(self.n))
+            move.direction = Dir([Dir.UP, Dir.DOWN, Dir.LEFT, Dir.RIGHT][np.random.randint(4)])
+            move.times = np.random.randint(1, 4)
+            moves.append(str(move))
+            self.oneMove(move)
         return ' '.join(moves)
 
-
-def __controlPiezas(cube):
-    piezas = {}
-    for face in Face.FACES:
-        for x in range(1, cube.n - 1):
-            piezas[cube.faces[face][0, x].id] = cube.vecina(face, x, Dir.UP).id
-        for x in range(1, cube.n - 1):
-            piezas[cube.faces[face][-1, x].id] = cube.vecina(face, x, Dir.DOWN).id
-        for x in range(1, cube.n - 1):
-            piezas[cube.faces[face][x, 0].id] = cube.vecina(face, x, Dir.LEFT).id
-        for x in range(1, cube.n - 1):
-            piezas[cube.faces[face][x, -1].id] = cube.vecina(face, x, Dir.RIGHT).id
-        piezas[cube.faces[face][0, 0].id + 'H'] = cube.vecina(face, 0, Dir.LEFT).id
-        piezas[cube.faces[face][0, 0].id + 'A'] = cube.vecina(face, 0, Dir.UP).id
-        piezas[cube.faces[face][0, -1].id + 'H'] = cube.vecina(face, cube.n - 1, Dir.UP).id
-        piezas[cube.faces[face][0, -1].id + 'A'] = cube.vecina(face, 0, Dir.RIGHT).id
-        piezas[cube.faces[face][-1, 0].id + 'H'] = cube.vecina(face, 0, Dir.DOWN).id
-        piezas[cube.faces[face][-1, 0].id + 'A'] = cube.vecina(face, cube.n - 1, Dir.LEFT).id
-        piezas[cube.faces[face][-1, -1].id + 'H'] = cube.vecina(face, cube.n - 1, Dir.RIGHT).id
-        piezas[cube.faces[face][-1, -1].id + 'A'] = cube.vecina(face, cube.n - 1, Dir.DOWN).id
-    return piezas
-
-
-def test():
-    cube = Cube(8)
-
-    for face in Face.FACES:
-        print(face)
-        for i in range(cube.n):
-            for j in range(cube.n):
-                print(cube.faces[face][i, j].id, end=' ')
-            print()
-    print()
-
-    print('piezas:')
-    piezas = __controlPiezas(cube)
-    print(piezas)
-
-    print()
-    print('Hacer movimientos')
-    movim = input("Movimiento(s) : ")
-    while movim:
-        cube.makeMoves(movim)
-        for face in Face.FACES:
-            print('Cara :', face)
-            for i in range(cube.n):
-                for j in range(cube.n):
-                    print(cube.faces[face][i, j].id, end=' ')
-                print()
-            print()
-        movim = input("Movimiento(s) : ")
-
-    print()
-    cant = input('Cant. random movim. : ')
-    if not cant:
-        cant = 0
-    for _ in range(int(cant)):
-        print(cube.shuffle(1))
-        if piezas != __controlPiezas(cube):
-            break
-
-    for face in Face.FACES:
-        print('Cara :', face)
-        for i in range(cube.n):
-            for j in range(cube.n):
-                print(cube.faces[face][i, j].id, end=' ')
-            print()
-        print()
-
-    print('control piezas...')
-    piezas2 = __controlPiezas(cube)
-    print()
-    if piezas == piezas2:
-        print('Las piezas se mantuvieron coherentes!!!')
-        print()
-    else:
-        print('Algo anduvo mal...')
-        print()
-        for x in piezas:
-            if piezas[x] != piezas2[x]:
-                print('original', x, ':', piezas[x])
-                print('ahora   ', x, ':', piezas2[x])
-                print()
-
-
-if __name__ == '__main__':
-    test()

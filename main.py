@@ -240,15 +240,15 @@ class MainWindow(Qt.QMainWindow):
                     self.parent.actualizaCurrentRowSoluc(int(self.jobs[0].movim.split('-')[1]))
                     self.endJob()
                     return
-                face, span, direction, times = self.cuboAnim.str2move(self.jobs[0].movim)
+                move = self.cuboAnim.str2move(self.jobs[0].movim)
                 celdasMovidas = None if not self.mostrarMovim else []
-                self.cuboAnim.oneMove(face, span, direction, times, celdasMovidas)
+                self.cuboAnim.oneMove(move, celdasMovidas)
                 if self.mostrarMovim:
                     self.jobs[0].listaActores = [self.cuboAnim.faces[f][r, c].ass for (f, r, c) in celdasMovidas]
                     n = self.cuboAnim.n
                     self.jobs[0].vector = np.dot(
                         [(n - 1) / 2, (n - 1) / 2, 1],
-                        self.cuboAnim.FC2xyz[self.cuboAnim.anticlockwiseFace(face, direction)]
+                        self.cuboAnim.FC2xyz[self.cuboAnim.anticlockwiseFace(move.face, move.direction)]
                     )
                     self.jobs[0].rotar = 90  # si el giro es multiple los actores estan multip veces => siempre 90
                 else:
