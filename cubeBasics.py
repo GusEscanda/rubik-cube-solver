@@ -252,49 +252,53 @@ class ColorRel:
 
 
 class Move:
-    # """
-    # Holds tha data to make a cube's move
-    # :param face: The base face from which the move originates.
-    # :param span: The range of rows/columns that will be moved.
-    # :param direction: The direction of the move (Dir.UP, Dir.DOWN, Dir.LEFT, Dir.RIGHT).
-    # :param times: The number of times to repeat the move.
-    # """
+    """
+    Holds tha data to make a cube's move
+
+    Attributes:
+
+    cube: the Cube object from where to take the size and vars
+    face: The base face from which the move originates.
+    span: a Span object with the range of rows/columns that will be moved.
+    direction: a Dir object with the direction of the move (UP, DOWN, LEFT, RIGHT).
+    times: the number of times to repeat the move.
+    """
 
     def __init__(self, cube, mov):
-        # """
-        # Converts a string 'mov' into a Move object to call the method 'oneMove'
-        # The string 'mov' can follow standard Rubik's notation (F, B, U, D, L, R, M, E, S, x, y, z, lowercase letters, w, ', 2)
-        # or be in the form <face>[.<span start>[:<span end>]].[<times>]<direction> where:
-        #
-        # <face> = "F", "B", "U", "D", "L", or "R"
-        # <span start> and <span end> = row/column numbers to move (start and end are inclusive)
-        #     - Explicit numbers indicate rows/columns counted from the top/left
-        #     - The numbering goes from 1 to self.n
-        #     - 'T' or 'L' (Top/Left) indicate the 1st row/column (equivalent to 1)
-        #     - 't' or 'l' (top/left) indicate the 2nd row/column (equivalent to 2)
-        #     - 'B' or 'R' (Bottom/Right) indicate the last row/column
-        #     - 'b' or 'r' (bottom/right) indicate the second-to-last row/column
-        #     - 'c' or 'C' (Center) indicate the middle row/column
-        #         - On odd-sized cubes, c and C are equivalent
-        #         - On even-sized cubes, c and C represent the smaller and larger of the two central rows/columns
-        #     - After TLtlBRbrcC, you can add or subtract a number
-        #         e.g.: T+1 is equivalent to t, B-1 is equivalent to b, t+1 is the 3rd row
-        #     - For symmetry purposes, T and L (as well as B and R) are equivalent and included only to clarify the movement notation.
-        #       The direction of the movement is determined ONLY by the “direction” field.
-        #     - The order of <span start> and <span end> is interchangeable (2:5 is equivalent to 5:2)
-        #
-        # <times> = number of times the move is repeated (digit, optional)
-        #     - A multiplier can be prefixed to the direction letter, indicating how many times the move should be performed
-        #     - 1: default, 2: the most logical to use, 3: rare (equivalent to 1 in the opposite direction), >3: ridiculous
-        #
-        # <direction> = "u", "d", "l", "r", "c", "a" for up, down, left, right, clockwise, and anticlockwise
-        #     - If the direction is clockwise or anticlockwise, <span start>:<span end> is omitted/ignored
-        #
-        # Any move that begins with "><" is considered mirrored with respect to a plane defined by the Z and Y axes.
-        #
-        # :param mov: the string with the move to perform, coded as explained above
-        # :return: (face, span, direction, times) tuple
-        # """
+        """
+        Converts a string 'mov' into a Move object to call the method 'oneMove'
+        The string 'mov' can follow standard Rubik's notation (F, B, U, D, L, R, M, E, S, x, y, z, lowercase letters, w, ', 2)
+        or be in the form <face>[.<span start>[:<span end>]].[<times>]<direction> where:
+
+        <face> = "F", "B", "U", "D", "L", or "R"
+        <span start> and <span end> = row/column numbers to move (start and end are inclusive)
+            - Explicit numbers indicate rows/columns counted from the top/left
+            - The numbering goes from 1 to self.n
+            - 'T' or 'L' (Top/Left) indicate the 1st row/column (equivalent to 1)
+            - 't' or 'l' (top/left) indicate the 2nd row/column (equivalent to 2)
+            - 'B' or 'R' (Bottom/Right) indicate the last row/column
+            - 'b' or 'r' (bottom/right) indicate the second-to-last row/column
+            - 'c' or 'C' (Center) indicate the middle row/column
+                - On odd-sized cubes, c and C are equivalent
+                - On even-sized cubes, c and C represent the smaller and larger of the two central rows/columns
+            - After TLtlBRbrcC, you can add or subtract a number
+                e.g.: T+1 is equivalent to t, B-1 is equivalent to b, t+1 is the 3rd row
+            - For symmetry purposes, T and L (as well as B and R) are equivalent and included only to clarify the movement notation.
+              The direction of the movement is determined ONLY by the “direction” field.
+            - The order of <span start> and <span end> is interchangeable (2:5 is equivalent to 5:2)
+
+        <times> = number of times the move is repeated (digit, optional)
+            - A multiplier can be prefixed to the direction letter, indicating how many times the move should be performed
+            - 1: default, 2: the most logical to use, 3: rare (equivalent to 1 in the opposite direction), >3: ridiculous
+
+        <direction> = "u", "d", "l", "r", "c", "a" for up, down, left, right, clockwise, and anticlockwise
+            - If the direction is clockwise or anticlockwise, <span start>:<span end> is omitted/ignored
+
+        Any move that begins with "><" is considered mirrored with respect to a plane defined by the Z and Y axes.
+
+        :param cube: the Cube object from where to take the size and vars
+        :param mov: the string with the move to perform, coded as explained above
+        """
         mm = mov
         face, span, direction, times = '', Span(cube), Dir(Dir.NULL), 0
 
