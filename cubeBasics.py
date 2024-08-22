@@ -1,6 +1,7 @@
 # Basic data structures and processes of a Rubik's cube
-
+from __future__ import annotations
 import numpy as np
+
 from util import stripWords, firstAndRest, Vars
 
 
@@ -20,28 +21,44 @@ class Dir:
     _OFFSETS = {UP: (-1, 0), DOWN: (1, 0), RIGHT: (0, 1), LEFT: (0, -1), NULL: (0, 0)}
     _DIRECTION = {v: k for k, v in _OFFSETS.items()}
 
-    def __init__(self, d):
-        self.id = d.lower()
+    def __init__(self, dirId):
+        self.id = dirId.lower()
         self.row, self.col = Dir._OFFSETS[self.id]
 
     def __repr__(self):
         return self.id
 
-    def invert(self):
+    def invert(self) -> Dir:
+        """
+        Inverts the direction of the movement LEFT <-> RIGHT or UP <-> DOWN
+        Change the object inplace and returns a pointer to itself (useful if you want to chain method calls)
+        :return: the changed object
+        """
         self.row = -self.row
         self.col = -self.col
         self.id = Dir._DIRECTION[(self.row, self.col)]
         return self
 
-    def swap(self):
+    def swap(self) -> Dir:
+        """
+        Swaps the row and column steps, now you're moving through columns as you did through rows and vice versa
+        Change the object inplace and returns a pointer to itself (useful if you want to chain method calls)
+        :return: the changed object
+        """
         self.row, self.col = self.col, self.row
         self.id = Dir._DIRECTION[(self.row, self.col)]
         return self
 
-    def horizontal(self):
+    def horizontal(self) -> bool:
+        """
+        :return: True if the direction is LEFT or RIGHT
+        """
         return self.col != 0
 
-    def vertical(self):
+    def vertical(self) -> bool:
+        """
+        :return: True if the direction is UP or DOWN
+        """
         return self.row != 0
 
 
@@ -49,25 +66,25 @@ class Span:
     """
     Holds the limits (beg/end) of a sector of tiles to move or to compare
     """
-    def __init__(self, cube, sRange="", checkLimits=True):
+    def __init__(self, cube: Cube, strSpan="", checkLimits=True):
         """
-        Converts a string that represents a range of rows/columns to move into a tuple begin, end
-        :param sRange: string containing a range with the form <begin>[:<end>] where <begin> and <end> can be just
-                       numbers, logic coordinates like "T" for top, "C" for center, etc. or any arithmetic operation
-                       using them
+        Converts a string that represents a range of rows/columns to move into Span object
+        :param cube: the Cube object from where to take the size and vars
+        :param strSpan: string containing a range with the form <begin>[:<end>] where <begin> and <end> can be just
+                        numbers, logic coordinates like "T" for top, "C" for center, etc. or any arithmetic operation
+                        using them
         :param checkLimits: True if it's necessary to check if <begin> and <end> are between 0 and n-1
-        :return: (<begin>, <end>) tuple
         """
-        if sRange == "":
+        if strSpan == "":
             beg, end = 0, cube.n - 1
-        elif ':' in sRange:
-            beg, end = sRange.split(':')
+        elif ':' in strSpan:
+            beg, end = strSpan.split(':')
             beg = eval(beg, cube.vars.vars()) - 1
             end = eval(end, cube.vars.vars()) - 1
             if beg > end:
                 beg, end = end, beg
         else:
-            beg = eval(sRange, cube.vars.vars()) - 1
+            beg = eval(strSpan, cube.vars.vars()) - 1
             end = beg
         if checkLimits:
             beg = 0 if beg < 0 else cube.n - 1 if beg >= cube.n else beg
@@ -77,17 +94,32 @@ class Span:
         self.end = end
 
     def __repr__(self):
-        return f'{self.beg + 1}:{self.end + 1}'
+        return f"{self.beg + 1}:{self.end + 1}"
 
-    def invert(self):
+    def invert(self) -> Span:
+        """
+        Inverts the orientation of the span, ie 2nd and 3rd tiles from the left becomes 2nd and 3rd tiles from the right
+        Change the object inplace and returns a pointer to itself (useful if you want to chain method calls)
+        :return: the changed object
+        """
         self.beg, self.end = (self.cube.n - 1 - self.end, self.cube.n - 1 - self.beg)
         return self
 
-    def swap(self):
+    def swap(self) -> Span:
+        """
+        Swaps the beginning and end of the Span
+        Change the object inplace and returns a pointer to itself (useful if you want to chain method calls)
+        :return: the changed object
+        """
         self.beg, self.end = self.end, self.beg
         return self
 
-    def slice(self):
+    def slice(self) -> slice:
+        """
+        Returns a builtin Python slice object based on the properties of the Span, useful for use in
+        numpy arrays or to generate range() parameters
+        :return: the slice object
+        """
         step = -1 if self.beg > self.end else 1
         return slice(self.beg, self.end + step if self.end or step != -1 else None, step)
 
@@ -127,7 +159,7 @@ class Connection:
     """
     Holds the connection between the faces of the cube, ie if I'm in the left face, when I go past the top edge I get to
     the top face, but if I go past the right edge, I get to the front face, and so on. Also holds info about how the
-    rows and columns behave when go through the edges
+    rows and columns behave when going through the edges
     """
     def __init__(self, face, direct, invert, transpose):
         self.face = face
@@ -195,7 +227,8 @@ class ColorRel:
 
     def listColors(self, rel, color1, color2=None):
         """
-        Returns a list of colors that have the relationship 'rel' with 'color1' or the list of colors that have the relationship 'rel' with color1 and color2
+        Returns a list of colors that have the relationship 'rel' with 'color1' or the list of colors that
+        have the relationship 'rel' with color1 and color2
         :param rel: type of relationship ('a' = anticlockwise, 'c' = clockwise, 'o' = opposite)
         :param color1: the name of the 1st color
         :param color2: (optional) the name of the second color

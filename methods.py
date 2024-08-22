@@ -4,7 +4,7 @@ from pathlib import Path
 import json
 
 from util import stripWords, firstAndRest, rangeRC, Vars
-from cube import Dir, Span
+from cubeBasics import Dir, Span
 
 
 def celdaEquiv(cubo, face, fila, columna, posicionCubo):

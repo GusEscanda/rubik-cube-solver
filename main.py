@@ -23,7 +23,7 @@ from PyQt5.QtCore import pyqtSlot
 from PyQt5.QtWidgets import QApplication
 
 # cube
-from cube import Cube, Face, Move
+from cubeBasics import Cube, Face, Move
 import methods as met
 from util import stripWords, firstAndRest, Vars
 from gallery import Gallery
