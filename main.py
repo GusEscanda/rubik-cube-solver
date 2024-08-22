@@ -23,7 +23,7 @@ from PyQt5.QtCore import pyqtSlot
 from PyQt5.QtWidgets import QApplication
 
 # cube
-from cube import Cube, Face
+from cube import Cube, Face, Move
 import methods as met
 from util import stripWords, firstAndRest, Vars
 from gallery import Gallery
@@ -240,7 +240,7 @@ class MainWindow(Qt.QMainWindow):
                     self.parent.actualizaCurrentRowSoluc(int(self.jobs[0].movim.split('-')[1]))
                     self.endJob()
                     return
-                move = self.cuboAnim.str2move(self.jobs[0].movim)
+                move = Move(self.cuboAnim, self.jobs[0].movim)
                 celdasMovidas = None if not self.mostrarMovim else []
                 self.cuboAnim.oneMove(move, celdasMovidas)
                 if self.mostrarMovim:
@@ -248,7 +248,7 @@ class MainWindow(Qt.QMainWindow):
                     n = self.cuboAnim.n
                     self.jobs[0].vector = np.dot(
                         [(n - 1) / 2, (n - 1) / 2, 1],
-                        self.cuboAnim.FC2xyz[self.cuboAnim.anticlockwiseFace(move.face, move.direction)]
+                        self.cuboAnim.FC2xyz[self.cuboAnim.anticlockwiseFace(move.face, move.direction.id)]
                     )
                     self.jobs[0].rotar = 90  # si el giro es multiple los actores estan multip veces => siempre 90
                 else:

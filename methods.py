@@ -4,7 +4,7 @@ from pathlib import Path
 import json
 
 from util import stripWords, firstAndRest, rangeRC, Vars
-from cube import Dir
+from cube import Dir, Span
 
 
 def celdaEquiv(cubo, face, fila, columna, posicionCubo):
@@ -15,14 +15,14 @@ def celdaEquiv(cubo, face, fila, columna, posicionCubo):
         multip = (1 if '2' not in movim else 2)
         prima = ("'" in movim)
         movim = movim[0]
-        dd, horario = Dir.NULL, False
+        dd, horario = Dir(Dir.NULL), False
         if movim in 'YUD':  # asumo movimiento en sentido Y o U, luego ajusto si era D
             if face in 'UD':  # para U o D, Y es un movimiento horario o antihorario
                 horario = (face == 'U')
                 if movim != 'Y' and movim != face:
                     multip = 0  # esa celda no se mueve
             else:  # face in FBLR
-                dd = Dir.LEFT
+                dd = Dir(Dir.LEFT)
                 if (movim == 'U' and fila > 0) or (movim == 'D' and fila < cubo.n - 1):
                     multip = 0  # esa celda no se mueve
         elif movim in 'XRL':  # asumo movimiento en sentido X o R, luego ajusto si era L
@@ -31,11 +31,11 @@ def celdaEquiv(cubo, face, fila, columna, posicionCubo):
                 if movim != 'X' and movim != face:
                     multip = 0  # esa celda no se mueve
             elif face == 'B':
-                dd = Dir.DOWN
+                dd = Dir(Dir.DOWN)
                 if (movim == 'R' and columna > 0) or (movim == 'L' and columna < cubo.n - 1):
                     multip = 0  # esa celda no se mueve
             else:  # face in FUD
-                dd = Dir.UP
+                dd = Dir(Dir.UP)
                 if (movim == 'L' and columna > 0) or (movim == 'R' and columna < cubo.n - 1):
                     multip = 0  # esa celda no se mueve
         elif movim in 'ZFB':  # asumo movimiento en sentido Z o F, luego ajusto si era B
@@ -44,48 +44,48 @@ def celdaEquiv(cubo, face, fila, columna, posicionCubo):
                 if movim != 'Z' and movim != face:
                     multip = 0  # esa celda no se mueve
             elif face == 'U':
-                dd = Dir.RIGHT
+                dd = Dir(Dir.RIGHT)
                 if (movim == 'B' and fila > 0) or (movim == 'F' and fila < cubo.n - 1):
                     multip = 0  # esa celda no se mueve
             elif face == 'D':
-                dd = Dir.LEFT
+                dd = Dir(Dir.LEFT)
                 if (movim == 'F' and fila > 0) or (movim == 'B' and fila < cubo.n - 1):
                     multip = 0  # esa celda no se mueve
             elif face == 'L':
-                dd = Dir.UP
+                dd = Dir(Dir.UP)
                 if (movim == 'B' and columna > 0) or (movim == 'F' and columna < cubo.n - 1):
                     multip = 0  # esa celda no se mueve
             else:  # face == 'R':
-                dd = Dir.DOWN
+                dd = Dir(Dir.DOWN)
                 if (movim == 'F' and columna > 0) or (movim == 'B' and columna < cubo.n - 1):
                     multip = 0  # esa celda no se mueve
         if movim in 'DLB':  # movimientos opuestos a XYZ y URF => invierto el sentido
             horario = not horario
-            dd = (-dd[0], -dd[1])
+            dd.invert()
         if not prima:  # considero el movimiento opuesto => si NO es ' invierto el sentido
             horario = not horario
-            dd = (-dd[0], -dd[1])
+            dd.invert()
         # ahora multip veces cambio de cara, fila y columna segun indiquen dd y horario
         for _ in range(multip):
-            if dd == Dir.NULL:  # solo girar, no cambia la cara
+            if dd.id == Dir.NULL:  # solo girar, no cambia la cara
                 if horario:
                     fila, columna = columna, cubo.n - fila - 1
                 else:
                     fila, columna = cubo.n - columna - 1, fila
             else:
                 # pasar a la face contigua (hacia dd) y calcular la nueva fila y columna
-                conn = cubo.conn[face][dd]
-                if (dd in (Dir.UP, Dir.DOWN)) != (conn.direct in (Dir.UP, Dir.DOWN)):
+                conn = cubo.conn[face][dd.id]
+                if dd.vertical() != conn.direct.vertical():
                     fila, columna = columna, fila  # si cambio la direccion de vertical a horizontal o viceversa, intercambio filas con columnas
-                if conn.direct in (Dir.UP, Dir.DOWN):
-                    if (dd[0] + dd[1]) != (
-                            conn.direct[0] + conn.direct[1]):  # si cambio el sentido, de ascendente a descendente o viceversa
+                if conn.direct.vertical():
+                    if (dd.row + dd.col) != (
+                            conn.direct.row + conn.direct.col):  # si cambio el sentido, de ascendente a descendente o viceversa
                         fila = cubo.n - fila - 1
                     if conn.invert:  # si se invierte la otra coordenada
                         columna = cubo.n - columna - 1
-                else:  # conn.direct in (Dir.LEFT,Dir.RIGHT)
-                    if (dd[0] + dd[1]) != (
-                            conn.direct[0] + conn.direct[1]):  # si cambio el sentido, de izquierda a derecha o viceversa
+                else:  # conn.direct.horizontal()
+                    if (dd.row + dd.col) != (
+                            conn.direct.row + conn.direct.col):  # si cambio el sentido, de izquierda a derecha o viceversa
                         columna = cubo.n - columna - 1
                     if conn.invert:  # si se invierte la otra coordenada
                         fila = cubo.n - fila - 1
@@ -240,16 +240,16 @@ def ejecutarMetodo(cubo, met, solucion, level=0):
         cantVeces = int(stripWords(met.modo)[0])
     bestMatch = (met.modo.upper() == 'BEST MATCH')
     if met.rangoI:
-        begI, endI = cubo.str2span(met.rangoI, checkLimits=False)
-        begI, endI = begI + 1, endI + 1
+        sp = Span(cubo, met.rangoI, checkLimits=False)
+        begI, endI = sp.beg + 1, sp.end + 1
         cubo.vars.set('i', begI)
     if met.rangoJ:
-        begJ, endJ = cubo.str2span(met.rangoJ, checkLimits=False)
-        begJ, endJ = begJ + 1, endJ + 1
+        sp = Span(cubo, met.rangoJ, checkLimits=False)
+        begJ, endJ = sp.beg + 1, sp.end + 1
         cubo.vars.set('j', begJ)
     if met.rangoK:
-        begK, endK = cubo.str2span(met.rangoK, checkLimits=False)
-        begK, endK = begK + 1, endK + 1
+        sp = Span(cubo, met.rangoK, checkLimits=False)
+        begK, endK = sp.beg + 1, sp.end + 1
         cubo.vars.set('k', begK)
     iSol = len(solucion)
     solucion.append(Sol(level, 'Met', met.id, False, met, False, cubo.vars))
@@ -258,8 +258,7 @@ def ejecutarMetodo(cubo, met, solucion, level=0):
     while seguir and (cant < cantVeces):
         if len(solucion) > 20000:  # solo para debug de algunos metodos
             print('OVERFLOW !!!!')
-            print(
-                'metodo: {0} len(soluc): {1}, cant: {2}, cantVeces: {3}'.format(met.id, len(solucion), cant, cantVeces))
+            print(f'metodo: {met.id} len(soluc): {len(solucion)}, cant: {cant}, cantVeces: {cantVeces}')
             solucion.append(Sol(level + 1, 'Pos', 'X2 X2 X2 X2', True, met, False, cubo.vars))
             break
         seguir = False
@@ -380,11 +379,13 @@ def cond2ListaCeldas(cubo, vars, listaCond):  # devuelve listaCeldas
             rangoColumnas = rangoColumnas.replace('j', str(vars.get('j', 'j')))
             rangoColumnas = rangoColumnas.replace('k', str(vars.get('k', 'k')))
 
-            rangoFilas = cubo.str2span(rangoFilas)
-            rangoColumnas = cubo.str2span(rangoColumnas)
+            rangoFilas = Span(cubo, rangoFilas).slice()
+            rangoColumnas = Span(cubo, rangoColumnas).slice()
 
-            for r, c in rangeRC(rangoFilas, rangoColumnas):
-                listaCeldas.append((face, r, c, colores))
+            listaCeldas.extend(
+                (face, r, c, colores)
+                for r in range(*rangoFilas.indices(cubo.n)) for c in range(*rangoColumnas.indices(cubo.n))
+            )
     return listaCeldas
 
 
