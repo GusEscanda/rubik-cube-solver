@@ -515,7 +515,7 @@ class Cube:
         :param tiles: (optional) Tiles that will replace the ones determined by the span and direction.
         :param changedTiles: (optional) If a list object is provided, tuples (face, row, column) of all modified tiles
                              are added to this list.
-        :return: Returns a matrix with the read tiles.
+        :return: Returns a matrix with the read tiles
         """
         if direction.horizontal():  # LEFT or RIGHT
             rows = span.slice()
