@@ -8,7 +8,7 @@ from cubeBasics import Dir, Span
 
 
 def celdaEquiv(cubo, face, fila, columna, posicionCubo):
-    # Devuelve la face, fila, columna donde estaría esta celda si hiciera los movimientos inversos a los de posicionCubo
+    # Devuelve la cara, fila, columna donde estaría esta celda si hiciera los movimientos inversos a los de posicionCubo
     if posicionCubo == '-':
         posicionCubo = ''
     for movim in reversed(stripWords(posicionCubo)):
