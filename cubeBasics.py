@@ -5,6 +5,30 @@ import numpy as np
 from util import stripWords, firstAndRest, Vars
 
 
+class TAddress:
+    """
+    Holds the address of a tile, that is, face, row, column
+    """
+    def __init__(self, face, row, column):
+        self.f = face
+        self.r = row
+        self.c = column
+
+    def mirror(self, cube: Cube):
+        """
+        Mirror the address of this tile respect to a plane defined by the Z and Y axes.
+        Change the object inplace and returns a pointer to itself (useful if you want to chain method calls)
+        :param cube: the Cube object from where to take the size
+        :return: the changed object
+        """
+        if self.f == 'R':
+            self.f = 'L'
+        elif self.f == 'L':
+            self.f = 'R'
+        self.c = cube.n - 1 - self.c
+        return self
+
+
 # Directions
 class Dir:
     """
@@ -153,6 +177,9 @@ class Tile:
     def __init__(self):
         self.id = ''
         self.color = ''
+
+    def __repr__(self):
+        return f'{self.id}.{self.color[0].upper()}'
 
 
 class Connection:
@@ -513,8 +540,8 @@ class Cube:
                      The dimension not taken as a range is read/replaced completely.
         :param direction: Direction of the movement
         :param tiles: (optional) Tiles that will replace the ones determined by the span and direction.
-        :param changedTiles: (optional) If a list object is provided, tuples (face, row, column) of all modified tiles
-                             are added to this list.
+        :param changedTiles: (optional) If a list object is provided, adds to this list the addresses (TAddress objects)
+                                of all the modified tiles.
         :return: Returns a matrix with the read tiles
         """
         if direction.horizontal():  # LEFT or RIGHT
@@ -528,7 +555,7 @@ class Cube:
             self.faces[face][rows, cols] = tiles
             if changedTiles is not None:
                 changedTiles.extend(
-                    (face, r, c) for r in range(*rows.indices(self.n)) for c in range(*cols.indices(self.n))
+                    TAddress(face, r, c) for r in range(*rows.indices(self.n)) for c in range(*cols.indices(self.n))
                 )
         return ret
 
@@ -537,8 +564,8 @@ class Cube:
         Performs a move on the cube. The move is determined by a face, a range of rows/columns, and a direction.
 
         :param move: the move to perform
-        :param changedTiles: (optional) If a list object is provided, tuples (face, row, column) of all modified tiles
-                             are added to this list.
+        :param changedTiles: (optional) If a list object is provided, adds to this list the addresses (TAddress objects)
+                                of all the modified tiles.
         """
         for _ in range(move.times):
             ff, sp, dd = move.face, move.span, move.direction
@@ -565,7 +592,7 @@ class Cube:
                     rotDir = 1 if move.direction.id == Dir.UP else 3  # 1 = anticlockwise, 3 = clockwise
                 self.faces[ff] = np.rot90(self.faces[ff], rotDir)
                 if changedTiles is not None:
-                    changedTiles.extend([(ff, r, c) for r in range(self.n) for c in range(self.n)])
+                    changedTiles.extend([TAddress(ff, r, c) for r in range(self.n) for c in range(self.n)])
             if move.span.beg == self.n - 1 or move.span.end == self.n - 1:
                 if move.direction.horizontal():  # Dir.RIGHT or Dir.LEFT
                     ff = self.conn[move.face][Dir.DOWN].face
@@ -575,7 +602,7 @@ class Cube:
                     rotDir = 1 if move.direction.id == Dir.DOWN else 3  # 1 = anticlockwise, 3 = clockwise
                 self.faces[ff] = np.rot90(self.faces[ff], rotDir)
                 if changedTiles is not None:
-                    changedTiles.extend([(ff, r, c) for r in range(self.n) for c in range(self.n)])
+                    changedTiles.extend([TAddress(ff, r, c) for r in range(self.n) for c in range(self.n)])
 
     def anticlockwiseFace(self, face, direction):
         """

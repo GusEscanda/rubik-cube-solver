@@ -4,7 +4,13 @@ from pathlib import Path
 import json
 
 from util import stripWords, firstAndRest, rangeRC, Vars
-from cubeBasics import Dir, Span
+from cubeBasics import Dir, Span, TAddress
+
+
+class CondTile(TAddress):
+    def __init__(self, face, row, column, color):
+        super().__init__(face, row, column)
+        self.color = color
 
 
 def celdaEquiv(cubo, face, fila, columna, posicionCubo):
@@ -169,7 +175,7 @@ def matchCubo(cubo, vars, listaCeldas, posiciones=['-']):
                 if mCelda:
                     cantMatches = cantMatches + 1
                 match = match and mCelda
-            else:  # es una lista de conciciones a evaluar como 'or'
+            else:  # es una lista de condiciones a evaluar como 'or'
                 orMatch = False
                 for lcOr in lc:
                     (face, fila, columna, coloresPosibles) = lcOr
@@ -289,8 +295,8 @@ def ejecutarMetodo(cubo, met, solucion, level=0):
                         solucion.append(Sol(level + 1, 'Alg', algoritmo, hizo, met, False, cubo.vars))
                 hizoAlgo = hizoAlgo or hizo
                 seguir = seguir or hizo
-        if not hizo and met.mirror and len(
-                listaCeldas) > 0:  # si no se hizo movimientos y lo especifica el metodo, pruebo con las condiciones espejadas
+        # si no se hizo movimientos y lo especifica el metodo, pruebo con las condiciones espejadas
+        if not hizo and met.mirror and len(listaCeldas) > 0:
             for c in range(len(listaCeldas)):
                 if type(listaCeldas[c]) is tuple:
                     listaCeldas[c] = mirrorCelda(cubo, listaCeldas[c])
@@ -349,7 +355,7 @@ def ejecutarMetodo(cubo, met, solucion, level=0):
 def cond2ListaCeldas(cubo, vars, listaCond):  # devuelve listaCeldas
     # listaCond es una lista de strings tipo 'cond' que puede tener sublistas con strings tipo cond
     #   las condiciones que se encuentran en la lista principal se evaluan como 'and', las condiciones que
-    #   se encuentren en las sublistas se evaluan como 'or' (solo se permiten dos levels, lista y sublista)
+    #   se encuentren en las sublistas se evaluan como 'or' (solo se permiten dos niveles, lista y sublista)
     # - cond es un string de la forma <cara>.<rango filas>.<rango columnas>.colores
     #     cara: id de la cara
     #     rangos de fila y columna: especificados con la sintaxis de str2movim
@@ -363,7 +369,7 @@ def cond2ListaCeldas(cubo, vars, listaCond):  # devuelve listaCeldas
     #        - "->nombre" asigna el color de la celda a una variable llamada "nombre"
     #        - "==nombre" el color de la celda debe coincidir con el PREVIAMENTE ASIGNADO a la variable "nombre"
     #        - "!=nombre" el color de la celda debe ser distinto al PREVIAMENTE ASIGNADO a la variable "nombre"
-    listaCeldas = []  # TODO: evaluar si no es mejor devolver in iterable (yield)
+    listaCeldas = []  # TODO: evaluar si no es mejor devolver un iterable (yield)
     for cond in listaCond:
         if cond[0:2].upper() == 'OR':
             listaCeldas.append(cond2ListaCeldas(cubo, vars, stripWords(cond[2:], ',')))

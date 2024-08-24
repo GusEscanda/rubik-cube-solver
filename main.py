@@ -244,7 +244,7 @@ class MainWindow(Qt.QMainWindow):
                 celdasMovidas = None if not self.mostrarMovim else []
                 self.cuboAnim.oneMove(move, celdasMovidas)
                 if self.mostrarMovim:
-                    self.jobs[0].listaActores = [self.cuboAnim.faces[f][r, c].ass for (f, r, c) in celdasMovidas]
+                    self.jobs[0].listaActores = [self.cuboAnim.faces[ta.f][ta.r, ta.c].ass for ta in celdasMovidas]
                     n = self.cuboAnim.n
                     self.jobs[0].vector = np.dot(
                         [(n - 1) / 2, (n - 1) / 2, 1],
