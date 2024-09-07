@@ -13,9 +13,6 @@ class CondTile(TAddress):
         self.color = color
 
 
-
-
-
 def matchCelda(vars, coloresPosibles, colorRel, colorCelda):
     # vars: objeto de tipo Vars, contiene los valores de las variables locales y globales definidas por el usuario
     # coloresPosibles: uno o varios colores separados por espacios, con que uno coincida se considera que hay coincidencia. Cada uno puede ser:
