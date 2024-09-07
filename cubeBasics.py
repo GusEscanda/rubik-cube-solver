@@ -9,23 +9,44 @@ class TAddress:
     """
     Holds the address of a tile, that is, face, row, column
     """
-    def __init__(self, face, row, column):
+    def __init__(self, cube, face, row, column):
+        self.cube = cube
         self.f = face
         self.r = row
         self.c = column
 
-    def mirror(self, cube: Cube):
-        """
-        Mirror the address of this tile respect to a plane defined by the Z and Y axes.
-        Change the object inplace and returns a pointer to itself (useful if you want to chain method calls)
-        :param cube: the Cube object from where to take the size
-        :return: the changed object
-        """
-        if self.f == 'R':
-            self.f = 'L'
-        elif self.f == 'L':
-            self.f = 'R'
-        self.c = cube.n - 1 - self.c
+    # def mirror(self, cube: Cube):
+    #     """
+    #     Mirror the address of this tile respect to a plane defined by the Z and Y axes.
+    #     Change the object inplace and returns a pointer to itself (useful if you want to chain method calls)
+    #     :param cube: the Cube object from where to take the size
+    #     :return: the changed object
+    #     """
+    #     if self.f == 'R':
+    #         self.f = 'L'
+    #     elif self.f == 'L':
+    #         self.f = 'R'
+    #     self.c = cube.n - 1 - self.c
+    #     return self
+
+    def clockwise(self):
+        self.r, self.c = self.c, self.cube.n - self.r - 1
+        return self
+
+    def anticlockwise(self):
+        self.r, self.c = self.cube.n - self.c - 1, self.r
+        return self
+
+    def swap(self):
+        self.r, self.c = self.c, self.r
+        return self
+
+    def horizontalMirror(self):
+        self.r = self.cube.n - self.r - 1
+        return self
+
+    def verticalMirror(self):
+        self.c = self.cube.n - self.c - 1
         return self
 
 
@@ -555,7 +576,7 @@ class Cube:
             self.faces[face][rows, cols] = tiles
             if changedTiles is not None:
                 changedTiles.extend(
-                    TAddress(face, r, c) for r in range(*rows.indices(self.n)) for c in range(*cols.indices(self.n))
+                    TAddress(self, face, r, c) for r in range(*rows.indices(self.n)) for c in range(*cols.indices(self.n))
                 )
         return ret
 
@@ -592,7 +613,7 @@ class Cube:
                     rotDir = 1 if move.direction.id == Dir.UP else 3  # 1 = anticlockwise, 3 = clockwise
                 self.faces[ff] = np.rot90(self.faces[ff], rotDir)
                 if changedTiles is not None:
-                    changedTiles.extend([TAddress(ff, r, c) for r in range(self.n) for c in range(self.n)])
+                    changedTiles.extend([TAddress(self, ff, r, c) for r in range(self.n) for c in range(self.n)])
             if move.span.beg == self.n - 1 or move.span.end == self.n - 1:
                 if move.direction.horizontal():  # Dir.RIGHT or Dir.LEFT
                     ff = self.conn[move.face][Dir.DOWN].face
@@ -602,7 +623,7 @@ class Cube:
                     rotDir = 1 if move.direction.id == Dir.DOWN else 3  # 1 = anticlockwise, 3 = clockwise
                 self.faces[ff] = np.rot90(self.faces[ff], rotDir)
                 if changedTiles is not None:
-                    changedTiles.extend([TAddress(ff, r, c) for r in range(self.n) for c in range(self.n)])
+                    changedTiles.extend([TAddress(self, ff, r, c) for r in range(self.n) for c in range(self.n)])
 
     def anticlockwiseFace(self, face, direction):
         """

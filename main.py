@@ -1554,7 +1554,7 @@ class MainWindow(Qt.QMainWindow):
 
     def listaCeldas2listaHints(self, cubo, listaCeldas, mirror, posic):
         ret = []
-        tAdd = TAddress('F', 0, 0)
+        tAdd = TAddress(cubo, 'F', 0, 0)
         for lc in listaCeldas:
             if type(lc) is tuple:
                 if mirror:
