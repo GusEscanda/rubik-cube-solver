@@ -7,7 +7,7 @@ from util import stripWords, firstAndRest, Vars
 
 class TAddress:
     """
-    Holds the address of a tile, that is, face, row, column
+    Holds the address of a tile, that is, face, row, column, and performs some transformations on it
     """
     def __init__(self, cube, face, row, column):
         self.cube = cube
@@ -47,6 +47,98 @@ class TAddress:
 
     def verticalMirror(self):
         self.c = self.cube.n - self.c - 1
+        return self
+
+    def equivalent(self, position):
+        """
+        Convierte la direccion de la celda (ara, fila, columna) a su equivalente para una determinada posicion del cubo, en otras palabras,
+        calcula donde estaría la celda si se hicieran los movimientos contrarios a los del parametro position
+        Change the object inplace and returns a pointer to itself (useful if you want to chain method calls)
+
+        :param position: La lista de movimientos que pone al cubo en la posicion donde se desea buscar. Los movimientos soportados son: FBLRUD XYZ + ' + 2
+        :return: The changed object
+        """
+        if position == '-':
+            position = ''
+        for movim in reversed(stripWords(position)):
+            multip = (1 if '2' not in movim else 2)
+            prima = ("'" in movim)
+            movim = movim[0]
+            dd, horario = Dir(Dir.NULL), False
+            if movim in 'YUD':  # asumo movimiento en sentido Y o U, luego ajusto si era D
+                if self.f in 'UD':  # para U o D, Y es un movimiento horario o antihorario
+                    horario = (self.f == 'U')
+                    if movim != 'Y' and movim != self.f:
+                        multip = 0  # esa celda no se mueve
+                else:  # self.f in FBLR
+                    dd = Dir(Dir.LEFT)
+                    if (movim == 'U' and self.r > 0) or (movim == 'D' and self.r < self.cube.n - 1):
+                        multip = 0  # esa celda no se mueve
+            elif movim in 'XRL':  # asumo movimiento en sentido X o R, luego ajusto si era L
+                if self.f in 'RL':  # para R o L, X es un movimiento horario o antihorario
+                    horario = (self.f == 'R')
+                    if movim != 'X' and movim != self.f:
+                        multip = 0  # esa celda no se mueve
+                elif self.f == 'B':
+                    dd = Dir(Dir.DOWN)
+                    if (movim == 'R' and self.c > 0) or (movim == 'L' and self.c < self.cube.n - 1):
+                        multip = 0  # esa celda no se mueve
+                else:  # self.f in FUD
+                    dd = Dir(Dir.UP)
+                    if (movim == 'L' and self.c > 0) or (movim == 'R' and self.c < self.cube.n - 1):
+                        multip = 0  # esa celda no se mueve
+            elif movim in 'ZFB':  # asumo movimiento en sentido Z o F, luego ajusto si era B
+                if self.f in 'FB':  # para F o B, Z es un movimiento horario o antihorario
+                    horario = (self.f == 'F')
+                    if movim != 'Z' and movim != self.f:
+                        multip = 0  # esa celda no se mueve
+                elif self.f == 'U':
+                    dd = Dir(Dir.RIGHT)
+                    if (movim == 'B' and self.r > 0) or (movim == 'F' and self.r < self.cube.n - 1):
+                        multip = 0  # esa celda no se mueve
+                elif self.f == 'D':
+                    dd = Dir(Dir.LEFT)
+                    if (movim == 'F' and self.r > 0) or (movim == 'B' and self.r < self.cube.n - 1):
+                        multip = 0  # esa celda no se mueve
+                elif self.f == 'L':
+                    dd = Dir(Dir.UP)
+                    if (movim == 'B' and self.c > 0) or (movim == 'F' and self.c < self.cube.n - 1):
+                        multip = 0  # esa celda no se mueve
+                else:  # self.f == 'R':
+                    dd = Dir(Dir.DOWN)
+                    if (movim == 'F' and self.c > 0) or (movim == 'B' and self.c < self.cube.n - 1):
+                        multip = 0  # esa celda no se mueve
+            if movim in 'DLB':  # movimientos opuestos a XYZ y URF => invierto el sentido
+                horario = not horario
+                dd.invert()
+            if not prima:  # considero el movimiento opuesto => si NO es ' invierto el sentido
+                horario = not horario
+                dd.invert()
+            # ahora multip veces cambio de cara, fila y columna segun indiquen dd y horario
+            for _ in range(multip):
+                if dd.id == Dir.NULL:  # solo girar, no cambia la cara
+                    if horario:
+                        self.clockwise()
+                    else:
+                        self.anticlockwise()
+                else:
+                    # pasar a la face contigua (hacia dd) y calcular la nueva fila y columna
+                    conn = self.cube.conn[self.f][dd.id]
+                    if dd.vertical() != conn.direct.vertical():
+                        self.swap()  # si cambio la direccion de vertical a horizontal o viceversa, intercambio filas con columnas
+                    if conn.direct.vertical():
+                        if (dd.row + dd.col) != (
+                                conn.direct.row + conn.direct.col):  # si cambio el sentido, de ascendente a descendente o viceversa
+                            self.horizontalMirror()
+                        if conn.invert:  # si se invierte la otra coordenada
+                            self.verticalMirror()
+                    else:  # conn.direct.horizontal()
+                        if (dd.row + dd.col) != (
+                                conn.direct.row + conn.direct.col):  # si cambio el sentido, de izquierda a derecha o viceversa
+                            self.verticalMirror()
+                        if conn.invert:  # si se invierte la otra coordenada
+                            self.horizontalMirror()
+                    self.f, dd = conn.face, conn.direct
         return self
 
 

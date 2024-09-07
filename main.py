@@ -1560,7 +1560,7 @@ class MainWindow(Qt.QMainWindow):
                 if mirror:
                     lc = met.mirrorCelda(cubo, lc)
                 (tAdd.f, tAdd.r, tAdd.c, coloresPosibles) = lc
-                met.celdaEquiv(cubo, tAdd, posic)
+                tAdd.equivalent(posic)
                 for color in stripWords(coloresPosibles):
                     if ',' in color:  # es una funcion de 2 parametros (a=, c=, a! o c!)
                         c0 = color[0:2]
@@ -1574,7 +1574,7 @@ class MainWindow(Qt.QMainWindow):
                     if mirror:
                         lcOr = met.mirrorCelda(cubo, lcOr)
                     (tAdd.f, tAdd.r, tAdd.c, coloresPosibles) = lcOr
-                    met.celdaEquiv(cubo, tAdd, posic)
+                    tAdd.equivalent(posic)
                     for color in stripWords(coloresPosibles):
                         if ',' in color:  # es una funcion de 2 parametros (a=, c=, a! o c!)
                             c0 = color[0:2]
