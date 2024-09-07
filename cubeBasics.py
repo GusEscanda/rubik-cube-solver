@@ -51,92 +51,95 @@ class TAddress:
 
     def equivalent(self, position):
         """
-        Convierte la direccion de la celda (ara, fila, columna) a su equivalente para una determinada posicion del cubo, en otras palabras,
-        calcula donde estaría la celda si se hicieran los movimientos contrarios a los del parametro position
-        Change the object inplace and returns a pointer to itself (useful if you want to chain method calls)
+        Converts the address of the tile (face, row, column) to its equivalent for a given cube position, in other
+        words, it calculates where the tile would be if the opposite moves to those in the 'position' parameter
+        were applied.
+        Change the object in place and returns a pointer to itself (useful for chaining method calls).
 
-        :param position: La lista de movimientos que pone al cubo en la posicion donde se desea buscar. Los movimientos soportados son: FBLRUD XYZ + ' + 2
-        :return: The changed object
+        :param position: The list of moves that bring the cube to the desired position. Supported moves are: FBLRUD XYZ + ' + 2.
+        :return: The modified object.
         """
         if position == '-':
             position = ''
-        for movim in reversed(stripWords(position)):
-            multip = (1 if '2' not in movim else 2)
-            prima = ("'" in movim)
-            movim = movim[0]
-            dd, horario = Dir(Dir.NULL), False
-            if movim in 'YUD':  # asumo movimiento en sentido Y o U, luego ajusto si era D
-                if self.f in 'UD':  # para U o D, Y es un movimiento horario o antihorario
-                    horario = (self.f == 'U')
-                    if movim != 'Y' and movim != self.f:
-                        multip = 0  # esa celda no se mueve
+        for move in reversed(stripWords(position)):
+            mult = (1 if '2' not in move else 2)
+            prime = ("'" in move)
+            move = move[0]
+            dd, clockwise = Dir(Dir.NULL), False
+            if move in 'YUD':  # Assuming a Y or U movement, adjusted later if it was D
+                if self.f in 'UD':  # For the faces U or D, Y is a clockwise or counterclockwise movement
+                    clockwise = (self.f == 'U')
+                    if move != 'Y' and move != self.f:
+                        mult = 0  # This tile does not move
                 else:  # self.f in FBLR
                     dd = Dir(Dir.LEFT)
-                    if (movim == 'U' and self.r > 0) or (movim == 'D' and self.r < self.cube.n - 1):
-                        multip = 0  # esa celda no se mueve
-            elif movim in 'XRL':  # asumo movimiento en sentido X o R, luego ajusto si era L
-                if self.f in 'RL':  # para R o L, X es un movimiento horario o antihorario
-                    horario = (self.f == 'R')
-                    if movim != 'X' and movim != self.f:
-                        multip = 0  # esa celda no se mueve
+                    if (move == 'U' and self.r > 0) or (move == 'D' and self.r < self.cube.n - 1):
+                        mult = 0  # This tile does not move
+            elif move in 'XRL':  # Assuming an X or R movement, adjusted later if it was L
+                if self.f in 'RL':  # For the faces R or L, X is a clockwise or counterclockwise movement
+                    clockwise = (self.f == 'R')
+                    if move != 'X' and move != self.f:
+                        mult = 0  # This tile does not move
                 elif self.f == 'B':
                     dd = Dir(Dir.DOWN)
-                    if (movim == 'R' and self.c > 0) or (movim == 'L' and self.c < self.cube.n - 1):
-                        multip = 0  # esa celda no se mueve
+                    if (move == 'R' and self.c > 0) or (move == 'L' and self.c < self.cube.n - 1):
+                        mult = 0  # This tile does not move
                 else:  # self.f in FUD
                     dd = Dir(Dir.UP)
-                    if (movim == 'L' and self.c > 0) or (movim == 'R' and self.c < self.cube.n - 1):
-                        multip = 0  # esa celda no se mueve
-            elif movim in 'ZFB':  # asumo movimiento en sentido Z o F, luego ajusto si era B
-                if self.f in 'FB':  # para F o B, Z es un movimiento horario o antihorario
-                    horario = (self.f == 'F')
-                    if movim != 'Z' and movim != self.f:
-                        multip = 0  # esa celda no se mueve
+                    if (move == 'L' and self.c > 0) or (move == 'R' and self.c < self.cube.n - 1):
+                        mult = 0  # This tile does not move
+            elif move in 'ZFB':  # Assuming a Z or F movement, adjusted later if it was B
+                if self.f in 'FB':  # For the faces F or B, Z is a clockwise or counterclockwise movement
+                    clockwise = (self.f == 'F')
+                    if move != 'Z' and move != self.f:
+                        mult = 0  # This tile does not move
                 elif self.f == 'U':
                     dd = Dir(Dir.RIGHT)
-                    if (movim == 'B' and self.r > 0) or (movim == 'F' and self.r < self.cube.n - 1):
-                        multip = 0  # esa celda no se mueve
+                    if (move == 'B' and self.r > 0) or (move == 'F' and self.r < self.cube.n - 1):
+                        mult = 0  # This tile does not move
                 elif self.f == 'D':
                     dd = Dir(Dir.LEFT)
-                    if (movim == 'F' and self.r > 0) or (movim == 'B' and self.r < self.cube.n - 1):
-                        multip = 0  # esa celda no se mueve
+                    if (move == 'F' and self.r > 0) or (move == 'B' and self.r < self.cube.n - 1):
+                        mult = 0  # This tile does not move
                 elif self.f == 'L':
                     dd = Dir(Dir.UP)
-                    if (movim == 'B' and self.c > 0) or (movim == 'F' and self.c < self.cube.n - 1):
-                        multip = 0  # esa celda no se mueve
-                else:  # self.f == 'R':
+                    if (move == 'B' and self.c > 0) or (move == 'F' and self.c < self.cube.n - 1):
+                        mult = 0  # This tile does not move
+                else:  # self.f == 'R'
                     dd = Dir(Dir.DOWN)
-                    if (movim == 'F' and self.c > 0) or (movim == 'B' and self.c < self.cube.n - 1):
-                        multip = 0  # esa celda no se mueve
-            if movim in 'DLB':  # movimientos opuestos a XYZ y URF => invierto el sentido
-                horario = not horario
+                    if (move == 'F' and self.c > 0) or (move == 'B' and self.c < self.cube.n - 1):
+                        mult = 0  # This tile does not move
+            if move in 'DLB':  # Opposite moves to XYZ and URF => invert the direction
+                clockwise = not clockwise
                 dd.invert()
-            if not prima:  # considero el movimiento opuesto => si NO es ' invierto el sentido
-                horario = not horario
+            if not prime:  # Consider the opposite movement => if it's NOT a prime, invert the direction
+                clockwise = not clockwise
                 dd.invert()
-            # ahora multip veces cambio de cara, fila y columna segun indiquen dd y horario
-            for _ in range(multip):
-                if dd.id == Dir.NULL:  # solo girar, no cambia la cara
-                    if horario:
+            # Now, change face, row, and column as indicated by dd and clockwise, 'mult' times
+            for _ in range(mult):
+                if dd.id == Dir.NULL:  # Just rotate, no face change
+                    if clockwise:
                         self.clockwise()
                     else:
                         self.anticlockwise()
                 else:
-                    # pasar a la face contigua (hacia dd) y calcular la nueva fila y columna
+                    # Move to the adjacent face (towards dd) and calculate the new row and column
                     conn = self.cube.conn[self.f][dd.id]
                     if dd.vertical() != conn.direct.vertical():
-                        self.swap()  # si cambio la direccion de vertical a horizontal o viceversa, intercambio filas con columnas
+                        self.swap()  # If switching from vertical to horizontal or vice versa, swap rows and columns
                     if conn.direct.vertical():
-                        if (dd.row + dd.col) != (
-                                conn.direct.row + conn.direct.col):  # si cambio el sentido, de ascendente a descendente o viceversa
+                        # If switching direction from ascending to descending or vice versa
+                        if (dd.row + dd.col) != (conn.direct.row + conn.direct.col):
                             self.horizontalMirror()
-                        if conn.invert:  # si se invierte la otra coordenada
+                        # If the other coordinate is inverted
+                        if conn.invert:
                             self.verticalMirror()
                     else:  # conn.direct.horizontal()
-                        if (dd.row + dd.col) != (
-                                conn.direct.row + conn.direct.col):  # si cambio el sentido, de izquierda a derecha o viceversa
+                        # If switching direction from left to right or vice versa
+                        if (dd.row + dd.col) != (conn.direct.row + conn.direct.col):
                             self.verticalMirror()
-                        if conn.invert:  # si se invierte la otra coordenada
+                        # If the other coordinate is inverted
+                        if conn.invert:
                             self.horizontalMirror()
                     self.f, dd = conn.face, conn.direct
         return self
@@ -683,7 +686,7 @@ class Cube:
         for _ in range(move.times):
             ff, sp, dd = move.face, move.span, move.direction
 
-            # copy the cell sector determined by 'span' and 'direction', on the different faces of the cube,
+            # copy the tile sector determined by 'span' and 'direction', on the different faces of the cube,
             # rotating 4 times in the given direction
             tiles = self.readWriteTiles(ff, sp, dd)
             for _ in range(4):
