@@ -13,7 +13,7 @@ class CondTile(TAddress):
         self.color = color
 
 
-def celdaEquiv(cubo, face, fila, columna, posicionCubo):
+def celdaEquiv(cubo, tAdd: TAddress, posicionCubo):
     # Devuelve la cara, fila, columna donde estaría esta celda si hiciera los movimientos inversos a los de posicionCubo
     if posicionCubo == '-':
         posicionCubo = ''
@@ -23,47 +23,47 @@ def celdaEquiv(cubo, face, fila, columna, posicionCubo):
         movim = movim[0]
         dd, horario = Dir(Dir.NULL), False
         if movim in 'YUD':  # asumo movimiento en sentido Y o U, luego ajusto si era D
-            if face in 'UD':  # para U o D, Y es un movimiento horario o antihorario
-                horario = (face == 'U')
-                if movim != 'Y' and movim != face:
+            if tAdd.f in 'UD':  # para U o D, Y es un movimiento horario o antihorario
+                horario = (tAdd.f == 'U')
+                if movim != 'Y' and movim != tAdd.f:
                     multip = 0  # esa celda no se mueve
-            else:  # face in FBLR
+            else:  # tAdd.f in FBLR
                 dd = Dir(Dir.LEFT)
-                if (movim == 'U' and fila > 0) or (movim == 'D' and fila < cubo.n - 1):
+                if (movim == 'U' and tAdd.r > 0) or (movim == 'D' and tAdd.r < cubo.n - 1):
                     multip = 0  # esa celda no se mueve
         elif movim in 'XRL':  # asumo movimiento en sentido X o R, luego ajusto si era L
-            if face in 'RL':  # para R o L, X es un movimiento horario o antihorario
-                horario = (face == 'R')
-                if movim != 'X' and movim != face:
+            if tAdd.f in 'RL':  # para R o L, X es un movimiento horario o antihorario
+                horario = (tAdd.f == 'R')
+                if movim != 'X' and movim != tAdd.f:
                     multip = 0  # esa celda no se mueve
-            elif face == 'B':
+            elif tAdd.f == 'B':
                 dd = Dir(Dir.DOWN)
-                if (movim == 'R' and columna > 0) or (movim == 'L' and columna < cubo.n - 1):
+                if (movim == 'R' and tAdd.c > 0) or (movim == 'L' and tAdd.c < cubo.n - 1):
                     multip = 0  # esa celda no se mueve
-            else:  # face in FUD
+            else:  # tAdd.f in FUD
                 dd = Dir(Dir.UP)
-                if (movim == 'L' and columna > 0) or (movim == 'R' and columna < cubo.n - 1):
+                if (movim == 'L' and tAdd.c > 0) or (movim == 'R' and tAdd.c < cubo.n - 1):
                     multip = 0  # esa celda no se mueve
         elif movim in 'ZFB':  # asumo movimiento en sentido Z o F, luego ajusto si era B
-            if face in 'FB':  # para F o B, Z es un movimiento horario o antihorario
-                horario = (face == 'F')
-                if movim != 'Z' and movim != face:
+            if tAdd.f in 'FB':  # para F o B, Z es un movimiento horario o antihorario
+                horario = (tAdd.f == 'F')
+                if movim != 'Z' and movim != tAdd.f:
                     multip = 0  # esa celda no se mueve
-            elif face == 'U':
+            elif tAdd.f == 'U':
                 dd = Dir(Dir.RIGHT)
-                if (movim == 'B' and fila > 0) or (movim == 'F' and fila < cubo.n - 1):
+                if (movim == 'B' and tAdd.r > 0) or (movim == 'F' and tAdd.r < cubo.n - 1):
                     multip = 0  # esa celda no se mueve
-            elif face == 'D':
+            elif tAdd.f == 'D':
                 dd = Dir(Dir.LEFT)
-                if (movim == 'F' and fila > 0) or (movim == 'B' and fila < cubo.n - 1):
+                if (movim == 'F' and tAdd.r > 0) or (movim == 'B' and tAdd.r < cubo.n - 1):
                     multip = 0  # esa celda no se mueve
-            elif face == 'L':
+            elif tAdd.f == 'L':
                 dd = Dir(Dir.UP)
-                if (movim == 'B' and columna > 0) or (movim == 'F' and columna < cubo.n - 1):
+                if (movim == 'B' and tAdd.c > 0) or (movim == 'F' and tAdd.c < cubo.n - 1):
                     multip = 0  # esa celda no se mueve
-            else:  # face == 'R':
+            else:  # tAdd.f == 'R':
                 dd = Dir(Dir.DOWN)
-                if (movim == 'F' and columna > 0) or (movim == 'B' and columna < cubo.n - 1):
+                if (movim == 'F' and tAdd.c > 0) or (movim == 'B' and tAdd.c < cubo.n - 1):
                     multip = 0  # esa celda no se mueve
         if movim in 'DLB':  # movimientos opuestos a XYZ y URF => invierto el sentido
             horario = not horario
@@ -75,28 +75,28 @@ def celdaEquiv(cubo, face, fila, columna, posicionCubo):
         for _ in range(multip):
             if dd.id == Dir.NULL:  # solo girar, no cambia la cara
                 if horario:
-                    fila, columna = columna, cubo.n - fila - 1
+                    tAdd.r, tAdd.c = tAdd.c, cubo.n - tAdd.r - 1
                 else:
-                    fila, columna = cubo.n - columna - 1, fila
+                    tAdd.r, tAdd.c = cubo.n - tAdd.c - 1, tAdd.r
             else:
                 # pasar a la face contigua (hacia dd) y calcular la nueva fila y columna
-                conn = cubo.conn[face][dd.id]
+                conn = cubo.conn[tAdd.f][dd.id]
                 if dd.vertical() != conn.direct.vertical():
-                    fila, columna = columna, fila  # si cambio la direccion de vertical a horizontal o viceversa, intercambio filas con columnas
+                    tAdd.r, tAdd.c = tAdd.c, tAdd.r  # si cambio la direccion de vertical a horizontal o viceversa, intercambio filas con columnas
                 if conn.direct.vertical():
                     if (dd.row + dd.col) != (
                             conn.direct.row + conn.direct.col):  # si cambio el sentido, de ascendente a descendente o viceversa
-                        fila = cubo.n - fila - 1
+                        tAdd.r = cubo.n - tAdd.r - 1
                     if conn.invert:  # si se invierte la otra coordenada
-                        columna = cubo.n - columna - 1
+                        tAdd.c = cubo.n - tAdd.c - 1
                 else:  # conn.direct.horizontal()
                     if (dd.row + dd.col) != (
                             conn.direct.row + conn.direct.col):  # si cambio el sentido, de izquierda a derecha o viceversa
-                        columna = cubo.n - columna - 1
+                        tAdd.c = cubo.n - tAdd.c - 1
                     if conn.invert:  # si se invierte la otra coordenada
-                        fila = cubo.n - fila - 1
-                face, dd = conn.face, conn.direct
-    return face, fila, columna
+                        tAdd.r = cubo.n - tAdd.r - 1
+                tAdd.f, dd = conn.face, conn.direct
+    return
 
 
 def matchCelda(vars, coloresPosibles, colorRel, colorCelda):
@@ -162,6 +162,7 @@ def matchCubo(cubo, vars, listaCeldas, posiciones=['-']):
     #        - "o=nombre" el color de la celda debe coincidir con el correspondiente al opuesto (dentro de este cubo)
     #          al especificado en "nombre"
     maxMatches, maxPosicion, matchAlguna = 0, "-", False
+    tAdd = TAddress('F', 0, 0)
     for posicion in posiciones:
         if posicion == '-':
             posicion = ''
@@ -169,18 +170,18 @@ def matchCubo(cubo, vars, listaCeldas, posiciones=['-']):
         match, cantMatches = True, 0
         for lc in listaCeldas:
             if type(lc) is tuple:
-                (face, fila, columna, coloresPosibles) = lc
-                face, fila, columna = celdaEquiv(cubo, face, fila, columna, posicion)
-                mCelda = matchCelda(vars, coloresPosibles, cubo.colorRel, cubo.faces[face][fila, columna].color)
+                (tAdd.f, tAdd.r, tAdd.c, coloresPosibles) = lc
+                celdaEquiv(cubo, tAdd, posicion)
+                mCelda = matchCelda(vars, coloresPosibles, cubo.colorRel, cubo.faces[tAdd.f][tAdd.r, tAdd.c].color)
                 if mCelda:
                     cantMatches = cantMatches + 1
                 match = match and mCelda
             else:  # es una lista de condiciones a evaluar como 'or'
                 orMatch = False
                 for lcOr in lc:
-                    (face, fila, columna, coloresPosibles) = lcOr
-                    face, fila, columna = celdaEquiv(cubo, face, fila, columna, posicion)
-                    mCelda = matchCelda(vars, coloresPosibles, cubo.colorRel, cubo.faces[face][fila, columna].color)
+                    (tAdd.f, tAdd.r, tAdd.c, coloresPosibles) = lcOr
+                    celdaEquiv(cubo, tAdd, posicion)
+                    mCelda = matchCelda(vars, coloresPosibles, cubo.colorRel, cubo.faces[tAdd.f][tAdd.r, tAdd.c].color)
                     orMatch = orMatch or mCelda
                 if orMatch:
                     cantMatches = cantMatches + 1

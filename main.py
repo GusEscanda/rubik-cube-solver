@@ -23,7 +23,7 @@ from PyQt5.QtCore import pyqtSlot
 from PyQt5.QtWidgets import QApplication
 
 # cube
-from cubeBasics import Cube, Face, Move
+from cubeBasics import Cube, Face, Move, TAddress
 import methods as met
 from util import stripWords, firstAndRest, Vars
 from gallery import Gallery
@@ -1554,34 +1554,35 @@ class MainWindow(Qt.QMainWindow):
 
     def listaCeldas2listaHints(self, cubo, listaCeldas, mirror, posic):
         ret = []
+        tAdd = TAddress('F', 0, 0)
         for lc in listaCeldas:
             if type(lc) is tuple:
                 if mirror:
                     lc = met.mirrorCelda(cubo, lc)
-                (face, fila, columna, coloresPosibles) = lc
-                (face, fila, columna) = met.celdaEquiv(cubo, face, fila, columna, posic)
+                (tAdd.f, tAdd.r, tAdd.c, coloresPosibles) = lc
+                met.celdaEquiv(cubo, tAdd, posic)
                 for color in stripWords(coloresPosibles):
                     if ',' in color:  # es una funcion de 2 parametros (a=, c=, a! o c!)
                         c0 = color[0:2]
                         c1, c2 = firstAndRest(color[2:], ',')
-                        ret.append((face, fila, columna, c0 + c1))
-                        ret.append((face, fila, columna, c0 + c2))
+                        ret.append((tAdd.f, tAdd.r, tAdd.c, c0 + c1))
+                        ret.append((tAdd.f, tAdd.r, tAdd.c, c0 + c2))
                     else:
-                        ret.append((face, fila, columna, color))
+                        ret.append((tAdd.f, tAdd.r, tAdd.c, color))
             else:  # es una sublista (or)
                 for lcOr in lc:
                     if mirror:
                         lcOr = met.mirrorCelda(cubo, lcOr)
-                    (face, fila, columna, coloresPosibles) = lcOr
-                    (face, fila, columna) = met.celdaEquiv(cubo, face, fila, columna, posic)
+                    (tAdd.f, tAdd.r, tAdd.c, coloresPosibles) = lcOr
+                    met.celdaEquiv(cubo, tAdd, posic)
                     for color in stripWords(coloresPosibles):
                         if ',' in color:  # es una funcion de 2 parametros (a=, c=, a! o c!)
                             c0 = color[0:2]
                             c1, c2 = firstAndRest(color[2:], ',')
-                            ret.append((face, fila, columna, c0 + c1))
-                            ret.append((face, fila, columna, c0 + c2))
+                            ret.append((tAdd.f, tAdd.r, tAdd.c, c0 + c1))
+                            ret.append((tAdd.f, tAdd.r, tAdd.c, c0 + c2))
                         else:
-                            ret.append((face, fila, columna, color))
+                            ret.append((tAdd.f, tAdd.r, tAdd.c, color))
         return ret
 
     def showHints(self, cubo, metodo, vars, posic, mirror, mostrarTextoCond):
