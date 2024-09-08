@@ -82,7 +82,7 @@
 #           ejemplos: T, b, T+1, R-2, T+i-1, b-k+2, c+j o C+j
 
 
-metodosHard = {
+HARD_METHODS = {
     "Standard": {
         "modo": "Once",
         "minLado": 3,

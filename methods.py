@@ -6,6 +6,9 @@ import json
 from util import stripWords, firstAndRest, rangeRC, Vars
 from cubeBasics import Dir, Span, TAddress
 
+# mantengo un 'archivo' de metodos hardcodeado por si se borra el archivo methods.json
+from archivoMetodos import HARD_METHODS
+
 
 class CondTile(TAddress):
     def __init__(self, face, row, column, color):
@@ -433,11 +436,9 @@ class Metodos:
             return ret
 
     def __init__(self, archivo='methods.json'):
-
-        from archivoMetodos import \
-            metodosHard  # mantengo un 'archivo' de metodos hardcodeado por si se borra el archivo methods.json
-        self.metodosHard = metodosHard
         self.archivo = archivo
+        self.metDict = copy.deepcopy(HARD_METHODS)
+        self.modif = False
         self.loadFromFile()
         self.vars = Vars('lg')
 
@@ -555,6 +556,6 @@ class Metodos:
                 self.metDict = json.load(json_file)
             self.modif = False
         else:
-            self.metDict = copy.deepcopy(self.metodosHard)
+            self.metDict = copy.deepcopy(HARD_METHODS)
             self.modif = True
         return
