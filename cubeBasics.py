@@ -5,146 +5,6 @@ import numpy as np
 from util import stripWords, firstAndRest, Vars
 
 
-class TAddress:
-    """
-    Holds the address of a tile, that is, face, row, column, and performs some transformations on it
-    """
-    def __init__(self, cube, face, row, column):
-        self.cube = cube
-        self.f = face
-        self.r = row
-        self.c = column
-
-    # def mirror(self, cube: Cube):
-    #     """
-    #     Mirror the address of this tile respect to a plane defined by the Z and Y axes.
-    #     Change the object inplace and returns a pointer to itself (useful if you want to chain method calls)
-    #     :param cube: the Cube object from where to take the size
-    #     :return: the changed object
-    #     """
-    #     if self.f == 'R':
-    #         self.f = 'L'
-    #     elif self.f == 'L':
-    #         self.f = 'R'
-    #     self.c = cube.n - 1 - self.c
-    #     return self
-
-    def clockwise(self):
-        self.r, self.c = self.c, self.cube.n - self.r - 1
-        return self
-
-    def anticlockwise(self):
-        self.r, self.c = self.cube.n - self.c - 1, self.r
-        return self
-
-    def swap(self):
-        self.r, self.c = self.c, self.r
-        return self
-
-    def horizontalMirror(self):
-        self.r = self.cube.n - self.r - 1
-        return self
-
-    def verticalMirror(self):
-        self.c = self.cube.n - self.c - 1
-        return self
-
-    def equivalent(self, position):
-        """
-        Converts the address of the tile (face, row, column) to its equivalent for a given cube position, in other
-        words, it calculates where the tile would be if the opposite moves to those in the 'position' parameter
-        were applied.
-        Change the object in place and returns a pointer to itself (useful for chaining method calls).
-
-        :param position: The list of moves that bring the cube to the desired position. Supported moves are: FBLRUD XYZ + ' + 2.
-        :return: The modified object.
-        """
-        if position == '-':
-            position = ''
-        for move in reversed(stripWords(position)):
-            mult = (1 if '2' not in move else 2)
-            prime = ("'" in move)
-            move = move[0]
-            dd, clockwise = Dir(Dir.NULL), False
-            if move in 'YUD':  # Assuming a Y or U movement, adjusted later if it was D
-                if self.f in 'UD':  # For the faces U or D, Y is a clockwise or counterclockwise movement
-                    clockwise = (self.f == 'U')
-                    if move != 'Y' and move != self.f:
-                        mult = 0  # This tile does not move
-                else:  # self.f in FBLR
-                    dd = Dir(Dir.LEFT)
-                    if (move == 'U' and self.r > 0) or (move == 'D' and self.r < self.cube.n - 1):
-                        mult = 0  # This tile does not move
-            elif move in 'XRL':  # Assuming an X or R movement, adjusted later if it was L
-                if self.f in 'RL':  # For the faces R or L, X is a clockwise or counterclockwise movement
-                    clockwise = (self.f == 'R')
-                    if move != 'X' and move != self.f:
-                        mult = 0  # This tile does not move
-                elif self.f == 'B':
-                    dd = Dir(Dir.DOWN)
-                    if (move == 'R' and self.c > 0) or (move == 'L' and self.c < self.cube.n - 1):
-                        mult = 0  # This tile does not move
-                else:  # self.f in FUD
-                    dd = Dir(Dir.UP)
-                    if (move == 'L' and self.c > 0) or (move == 'R' and self.c < self.cube.n - 1):
-                        mult = 0  # This tile does not move
-            elif move in 'ZFB':  # Assuming a Z or F movement, adjusted later if it was B
-                if self.f in 'FB':  # For the faces F or B, Z is a clockwise or counterclockwise movement
-                    clockwise = (self.f == 'F')
-                    if move != 'Z' and move != self.f:
-                        mult = 0  # This tile does not move
-                elif self.f == 'U':
-                    dd = Dir(Dir.RIGHT)
-                    if (move == 'B' and self.r > 0) or (move == 'F' and self.r < self.cube.n - 1):
-                        mult = 0  # This tile does not move
-                elif self.f == 'D':
-                    dd = Dir(Dir.LEFT)
-                    if (move == 'F' and self.r > 0) or (move == 'B' and self.r < self.cube.n - 1):
-                        mult = 0  # This tile does not move
-                elif self.f == 'L':
-                    dd = Dir(Dir.UP)
-                    if (move == 'B' and self.c > 0) or (move == 'F' and self.c < self.cube.n - 1):
-                        mult = 0  # This tile does not move
-                else:  # self.f == 'R'
-                    dd = Dir(Dir.DOWN)
-                    if (move == 'F' and self.c > 0) or (move == 'B' and self.c < self.cube.n - 1):
-                        mult = 0  # This tile does not move
-            if move in 'DLB':  # Opposite moves to XYZ and URF => invert the direction
-                clockwise = not clockwise
-                dd.invert()
-            if not prime:  # Consider the opposite movement => if it's NOT a prime, invert the direction
-                clockwise = not clockwise
-                dd.invert()
-            # Now, change face, row, and column as indicated by dd and clockwise, 'mult' times
-            for _ in range(mult):
-                if dd.id == Dir.NULL:  # Just rotate, no face change
-                    if clockwise:
-                        self.clockwise()
-                    else:
-                        self.anticlockwise()
-                else:
-                    # Move to the adjacent face (towards dd) and calculate the new row and column
-                    conn = self.cube.conn[self.f][dd.id]
-                    if dd.vertical() != conn.direct.vertical():
-                        self.swap()  # If switching from vertical to horizontal or vice versa, swap rows and columns
-                    if conn.direct.vertical():
-                        # If switching direction from ascending to descending or vice versa
-                        if (dd.row + dd.col) != (conn.direct.row + conn.direct.col):
-                            self.horizontalMirror()
-                        # If the other coordinate is inverted
-                        if conn.invert:
-                            self.verticalMirror()
-                    else:  # conn.direct.horizontal()
-                        # If switching direction from left to right or vice versa
-                        if (dd.row + dd.col) != (conn.direct.row + conn.direct.col):
-                            self.verticalMirror()
-                        # If the other coordinate is inverted
-                        if conn.invert:
-                            self.horizontalMirror()
-                    self.f, dd = conn.face, conn.direct
-        return self
-
-
 # Directions
 class Dir:
     """
@@ -528,6 +388,146 @@ class Move:
 
     def __repr__(self):
         return f'{self.face}.{self.span}.{self.times if self.times != 1 else ""}{self.direction}'
+
+
+class TAddress:
+    """
+    Holds the address of a tile, that is, face, row, column, and performs some transformations on it
+    """
+    def __init__(self, cube, face, row, column):
+        self.cube = cube
+        self.f = face
+        self.r = row
+        self.c = column
+
+    # def mirror(self, cube: Cube):
+    #     """
+    #     Mirror the address of this tile respect to a plane defined by the Z and Y axes.
+    #     Change the object inplace and returns a pointer to itself (useful if you want to chain method calls)
+    #     :param cube: the Cube object from where to take the size
+    #     :return: the changed object
+    #     """
+    #     if self.f == 'R':
+    #         self.f = 'L'
+    #     elif self.f == 'L':
+    #         self.f = 'R'
+    #     self.c = cube.n - 1 - self.c
+    #     return self
+
+    def clockwise(self):
+        self.r, self.c = self.c, self.cube.n - self.r - 1
+        return self
+
+    def anticlockwise(self):
+        self.r, self.c = self.cube.n - self.c - 1, self.r
+        return self
+
+    def swap(self):
+        self.r, self.c = self.c, self.r
+        return self
+
+    def horizontalMirror(self):
+        self.r = self.cube.n - self.r - 1
+        return self
+
+    def verticalMirror(self):
+        self.c = self.cube.n - self.c - 1
+        return self
+
+    def equivalent(self, position):
+        """
+        Converts the address of the tile (face, row, column) to its equivalent for a given cube position, in other
+        words, it calculates where the tile would be if the opposite moves to those in the 'position' parameter
+        were applied.
+        Change the object in place and returns a pointer to itself (useful for chaining method calls).
+
+        :param position: The list of moves that bring the cube to the desired position. Supported moves are: FBLRUD XYZ + ' + 2.
+        :return: The modified object.
+        """
+        if position == '-':
+            position = ''
+        for move in reversed(stripWords(position)):
+            mult = (1 if '2' not in move else 2)
+            prime = ("'" in move)
+            move = move[0]
+            dd, clockwise = Dir(Dir.NULL), False
+            if move in 'YUD':  # Assuming a Y or U movement, adjusted later if it was D
+                if self.f in 'UD':  # For the faces U or D, Y is a clockwise or counterclockwise movement
+                    clockwise = (self.f == 'U')
+                    if move != 'Y' and move != self.f:
+                        mult = 0  # This tile does not move
+                else:  # self.f in FBLR
+                    dd = Dir(Dir.LEFT)
+                    if (move == 'U' and self.r > 0) or (move == 'D' and self.r < self.cube.n - 1):
+                        mult = 0  # This tile does not move
+            elif move in 'XRL':  # Assuming an X or R movement, adjusted later if it was L
+                if self.f in 'RL':  # For the faces R or L, X is a clockwise or counterclockwise movement
+                    clockwise = (self.f == 'R')
+                    if move != 'X' and move != self.f:
+                        mult = 0  # This tile does not move
+                elif self.f == 'B':
+                    dd = Dir(Dir.DOWN)
+                    if (move == 'R' and self.c > 0) or (move == 'L' and self.c < self.cube.n - 1):
+                        mult = 0  # This tile does not move
+                else:  # self.f in FUD
+                    dd = Dir(Dir.UP)
+                    if (move == 'L' and self.c > 0) or (move == 'R' and self.c < self.cube.n - 1):
+                        mult = 0  # This tile does not move
+            elif move in 'ZFB':  # Assuming a Z or F movement, adjusted later if it was B
+                if self.f in 'FB':  # For the faces F or B, Z is a clockwise or counterclockwise movement
+                    clockwise = (self.f == 'F')
+                    if move != 'Z' and move != self.f:
+                        mult = 0  # This tile does not move
+                elif self.f == 'U':
+                    dd = Dir(Dir.RIGHT)
+                    if (move == 'B' and self.r > 0) or (move == 'F' and self.r < self.cube.n - 1):
+                        mult = 0  # This tile does not move
+                elif self.f == 'D':
+                    dd = Dir(Dir.LEFT)
+                    if (move == 'F' and self.r > 0) or (move == 'B' and self.r < self.cube.n - 1):
+                        mult = 0  # This tile does not move
+                elif self.f == 'L':
+                    dd = Dir(Dir.UP)
+                    if (move == 'B' and self.c > 0) or (move == 'F' and self.c < self.cube.n - 1):
+                        mult = 0  # This tile does not move
+                else:  # self.f == 'R'
+                    dd = Dir(Dir.DOWN)
+                    if (move == 'F' and self.c > 0) or (move == 'B' and self.c < self.cube.n - 1):
+                        mult = 0  # This tile does not move
+            if move in 'DLB':  # Opposite moves to XYZ and URF => invert the direction
+                clockwise = not clockwise
+                dd.invert()
+            if not prime:  # Consider the opposite movement => if it's NOT a prime, invert the direction
+                clockwise = not clockwise
+                dd.invert()
+            # Now, change face, row, and column as indicated by dd and clockwise, 'mult' times
+            for _ in range(mult):
+                if dd.id == Dir.NULL:  # Just rotate, no face change
+                    if clockwise:
+                        self.clockwise()
+                    else:
+                        self.anticlockwise()
+                else:
+                    # Move to the adjacent face (towards dd) and calculate the new row and column
+                    conn = self.cube.conn[self.f][dd.id]
+                    if dd.vertical() != conn.direct.vertical():
+                        self.swap()  # If switching from vertical to horizontal or vice versa, swap rows and columns
+                    if conn.direct.vertical():
+                        # If switching direction from ascending to descending or vice versa
+                        if (dd.row + dd.col) != (conn.direct.row + conn.direct.col):
+                            self.horizontalMirror()
+                        # If the other coordinate is inverted
+                        if conn.invert:
+                            self.verticalMirror()
+                    else:  # conn.direct.horizontal()
+                        # If switching direction from left to right or vice versa
+                        if (dd.row + dd.col) != (conn.direct.row + conn.direct.col):
+                            self.verticalMirror()
+                        # If the other coordinate is inverted
+                        if conn.invert:
+                            self.horizontalMirror()
+                    self.f, dd = conn.face, conn.direct
+        return self
 
 
 class Cube:

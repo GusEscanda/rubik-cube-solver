@@ -152,7 +152,7 @@ def ejecutarMetodo(cubo, met, solucion, level=0):
     #     algoritmo: string
     if cubo.n < met.minLado:
         solucion.append(Sol(level, 'Met', met.id, False, met, False, cubo.vars))
-        return (False, True)
+        return False, True
     # la opcion 'repeat' es en realidad 6(n^2) veces, para no entrar en un loop infinito si hay un error en el metodo
     cantVeces = 6 * (cubo.n ** 2) if met.modo.upper() == 'REPEAT' else 0
     cantVeces = 1 if met.modo.upper() in 'ONCE / BEST MATCH' else cantVeces
@@ -264,7 +264,7 @@ def ejecutarMetodo(cubo, met, solucion, level=0):
             if not proxIter:
                 seguir, cant = True, 0
     solucion[iSol].hizo = hizoAlgo
-    return (hizoAlgo, success)
+    return hizoAlgo, success
 
 
 def cond2ListaCeldas(cubo, vars, listaCond):  # devuelve listaCeldas
