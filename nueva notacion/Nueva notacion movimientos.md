@@ -86,6 +86,18 @@ donde:
 - `MOVEMENT` determina cómo se mueven esas posiciones.
 - `[MULTIPLIER]` es opcional y permite repetir el movimiento.
 
+Si no se especifica `RANGE`, se utiliza `[1]`.
+
+Si no se especifica `MOVEMENT`, se utiliza `c` (clockwise).
+
+Por lo tanto:
+
+    F
+
+es equivalente a:
+
+    F[1]c
+
 Los espacios separan movimientos consecutivos.
 
 Por ejemplo:
@@ -93,6 +105,8 @@ Por ejemplo:
     R U R' U'
 
 representa cuatro movimientos consecutivos.
+
+
 
 ---
 
@@ -224,7 +238,7 @@ Las dos últimas representan rotaciones:
     c = clockwise
     a = anticlockwise
 
-La dirección determina además qué representa el rango seleccionado.
+La dirección determina además qué tipo de elemento representa el rango.
 
 ### `u` / `d`: columnas
 
@@ -262,7 +276,12 @@ significa:
 
 > Tomar las capas 2 y 3 desde F y rotarlas en sentido horario.
 
----
+Por lo tanto, la dirección determina tanto **qué elemento se mueve** como **hacia dónde se mueve**:
+
+    u / d  → columnas → up / down
+    l / r  → filas    → left / right
+    c / a  → capas    → clockwise / anticlockwise
+
 
 ## 8. Multiplicadores
 
@@ -362,56 +381,73 @@ puede escribirse exactamente de la misma manera.
 
 ## 10. Restricciones geométricas
 
-No toda combinación de cara, rango y dirección representa un movimiento geométricamente válido.
+No existen combinaciones geométricamente inválidas de cara, rango y dirección.
 
-La dirección determina el tipo de selección:
+La dirección determina cómo debe interpretarse el rango:
 
-    u / d  → filas
-    l / r  → columnas
+    u / d  → columnas
+    l / r  → filas
     c / a  → capas
 
 Por ejemplo:
 
     F[2:3]d
 
-selecciona las filas 2 y 3.
+selecciona las columnas 2 y 3 y las desplaza hacia abajo.
 
 Mientras que:
 
     F[2:3]r
 
-selecciona las columnas 2 y 3.
+selecciona las filas 2 y 3 y las desplaza hacia la derecha.
 
 Y:
 
     F[2:3]c
 
-selecciona las capas 2 y 3 desde F.
+selecciona las capas 2 y 3 desde F y las rota en sentido horario.
 
-Por lo tanto, `F[2:3]d` y `F[2:3]c` tienen sintaxis similar pero representan cosas geométricamente diferentes.
+Por lo tanto, el mismo rango puede representar filas, columnas o capas dependiendo de la dirección utilizada.
 
----
 
 ## 11. Ausencia de rango
 
-Cuando no se especifica un rango, se selecciona únicamente la posición `1` de la cara indicada:
+Cuando no se especifica un rango, se utiliza `[1]`.
 
-    F = F[1]
-    R = R[1]
-    U = U[1]
-    D = D[1]
-    B = B[1]
-    L = L[1]
+Por ejemplo:
 
-En particular, los movimientos de rotación estándar pueden expresarse como:
+    Fd
 
-    F  = F[1]c
-    F' = F[1]a
-    F2 = F[1]c2
+es equivalente a:
 
-Los movimientos lineales `u`, `d`, `l` y `r` requieren una selección cuyo tipo permita determinar las filas o columnas involucradas.
+    F[1]d
 
----
+y significa tomar la primera columna de F y moverla hacia abajo.
+
+Del mismo modo:
+
+    Fr
+
+es equivalente a:
+
+    F[1]r
+
+y significa tomar la primera fila de F y moverla hacia la derecha.
+
+Cuando tampoco se especifica una dirección, se utiliza `c` (clockwise).
+
+Por lo tanto:
+
+    F
+
+es equivalente a:
+
+    F[1]c
+
+y representa el giro clockwise de la capa exterior F.
+
+Esto permite expresar movimientos lineales sobre la primera fila o columna sin necesidad de especificar explícitamente el rango.
+
 
 ## 12. Representaciones equivalentes
 
@@ -441,8 +477,20 @@ Se pueden conservar las convenciones habituales:
 
 como abreviaturas convenientes.
 
-No forman parte de la sintaxis fundamental de la notación.
+También pueden escribirse utilizando la notación general.
 
-La sintaxis general es suficientemente expresiva como para representar los movimientos que estas abreviaturas describen.
+Por ejemplo, según la convención estándar de Rubik:
 
-Esto permite utilizar algoritmos publicados con notación tradicional sin renunciar a la expresividad necesaria para cubos NxN.
+    M = L'
+    E = D'
+    S = F
+
+y las rotaciones del cubo:
+
+    x = R L'
+    y = U D'
+    z = F B'
+
+Estas formas son equivalentes a los movimientos correspondientes expresados mediante la sintaxis general.
+
+Los movimientos estándar pueden utilizarse directamente o reemplazarse por sus equivalentes cuando resulte más conveniente para leer o memorizar un algoritmo.
