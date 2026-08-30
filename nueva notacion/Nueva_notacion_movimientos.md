@@ -97,13 +97,7 @@ El orden de los extremos es indistinto:
 
 Las coordenadas pueden ser números o expresiones numéricas.
 
-Las coordenadas siempre se interpretan respecto de la orientación de la `FACE` indicada, independientemente de la dirección del movimiento.
-
-Por ejemplo, en:
-
-    F[2:4]d
-
-las posiciones `2:4` se determinan mirando directamente la cara `F`, aunque el movimiento sea hacia abajo.
+La numeración de las posiciones no depende de la dirección del movimiento, sino únicamente de mirar la `FACE` indicada de frente (sección 2). Por ejemplo, `F[2]u` y `F[2]d` se refieren exactamente a la misma columna —la columna 2, contada de izquierda a derecha— aunque una la mueva hacia arriba y la otra hacia abajo.
 
 Una coordenada también puede ser negativa, y en ese caso se empieza a contar por el otro extremo, por ejemplo:
 

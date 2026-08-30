@@ -320,7 +320,7 @@ class MainWindow(Qt.QMainWindow):
         self.iren = self.vtkWidget.GetRenderWindow().GetInteractor()
 
         self.cubo = CubeVtk(self.renderer)
-        self.metodos = met.Metodos()
+        self.metodos = met.Metodos(cube=self.cubo)
         self.anim = self.Anim(parent=self, cuboAnim=self.cubo, frameRate=100)
         self.editTestVars = Vars('c')
 
@@ -1003,6 +1003,7 @@ class MainWindow(Qt.QMainWindow):
 
     def changeTestTamanio(self):
         self.metodoEditCubo.cambioTamanio(self.editTestTamanio.value())
+        self.metodos.compileFor(self.metodoEditCubo)
         self.editRefreshHints()
 
     def editTestMovim(self, tipo):
@@ -1079,6 +1080,7 @@ class MainWindow(Qt.QMainWindow):
         if buttonReply == Qt.QMessageBox.No:
             return
         self.metodos.loadFromFile()
+        self.metodos.compileFor(self.metodoEditCubo)
         self.editArchivoModificado.setText('*' if self.metodos.modif else ' ')
         if not self.metodos.exist(id):
             id = self.metodos.topLevel()[0]
@@ -1331,14 +1333,16 @@ class MainWindow(Qt.QMainWindow):
             return
         self.renderer.RemoveAllViewProps()
         self.metodoEditCubo = CubeVtk(self.renderer, self.cubo.n, white=True)
-        self.metodoEditCubo.setStyle(self.separacion.value() / 100,
-                                     self.innerColor,
-                                     self.backgroundColor,
-                                     (self.camPositionAzim.value(),
-                                      self.camPositionElev.value(),
-                                      self.camPositionZoom.value()
-                                      )
-                                     )
+        self.metodoEditCubo.setStyle(
+            self.separacion.value() / 100,
+            self.innerColor,
+            self.backgroundColor,
+            camPosition=(
+                self.camPositionAzim.value(),
+                self.camPositionElev.value(),
+                self.camPositionZoom.value()
+            )
+        )
         self.listaEditados = []
         self.anim.cuboAnim = self.metodoEditCubo
         self.editMetodoId.clear()
@@ -1876,6 +1880,7 @@ class MainWindow(Qt.QMainWindow):
     def cambioTamanio(self):
         self.anim.endAllJobs()
         self.cubo.cambioTamanio(self.tamanio.value())
+        self.metodos.compileFor(self.cubo)
 
     @pyqtSlot()
     def clickBotonReset(self):

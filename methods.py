@@ -4,7 +4,7 @@ from pathlib import Path
 import json
 
 from util import stripWords, firstAndRest, rangeRC, Vars
-from cubeBasics import Dir, Span, TAddress
+from cubeBasics import Cube, Dir, Span, TAddress
 
 # mantengo un 'archivo' de metodos hardcodeado por si se borra el archivo methods.json
 from archivoMetodos import HARD_METHODS
@@ -435,20 +435,25 @@ class Metodos:
                     ret.append(metId)
             return ret
 
-    def __init__(self, archivo='methods.json'):
+    def __init__(self, cube: Cube, archivo='methods.json'):
         self.archivo = archivo
         self.metDict = copy.deepcopy(HARD_METHODS)
+        self.metObjs = {}
         self.modif = False
         self.loadFromFile()
         self.vars = Vars('lg')
+        self.compileFor(cube)
+
+    def compileFor(self, cube: Cube):
+        self.metObjs = {}
+        for m in self.metDict:
+            self.metObjs[m] = self.Metodo(self, self.metDict[m], m)
 
     def exist(self, id):
         return id in self.metDict
 
     def metodo(self, id):
-        if self.exist(id):
-            return self.Metodo(self, self.metDict[id], id)
-        return False
+        return self.metObjs.get(id, False)
 
     def topLevel(self):  # devuelve una lista de los idMetodo que NO son submetodo de ningun otro
         lista = copy.copy(self.metDict)

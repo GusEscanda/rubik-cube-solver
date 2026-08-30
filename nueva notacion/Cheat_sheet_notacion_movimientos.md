@@ -6,6 +6,12 @@ Defaults: sin rango → `[1]` · sin movimiento → `c` → por lo tanto `F` = `
 ## Caras
 `U`p · `D`own · `F`ront · `B`ack · `L`eft · `R`ight
 
+## Convención geométrica
+- `F`, `B`, `L`, `R`: se miran con `U` arriba, `D` abajo
+- `U`, `D`: se miran con `L` a la izquierda, `R` a la derecha
+
+Es una convención (no la única posible). Las direcciones arriba, abajo, derecha, izquierda, sentido horario y antihorario, siempre se interpretan desde el punto de vista del observador situado frente a la cara indicada.
+
 ## Rangos
 | Forma | Significa |
 |---|---|
@@ -28,7 +34,7 @@ Negativos: `-1`=última · `-2`=penúltima · ... · `-N`=primera
 
 (en N impar, `c`=`C`)
 
-⚠️ Las coordenadas siempre se miden mirando `FACE` de frente — **no** cambian según la dirección del movimiento.
+⚠️ `F[2]u` y `F[2]d` son la misma columna — la dirección no cambia la numeración, solo hacia dónde se mueve.
 
 ## Direcciones
 | Dir | Rango = | Mueve hacia |
